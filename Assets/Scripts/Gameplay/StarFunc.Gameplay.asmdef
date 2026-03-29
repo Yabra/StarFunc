@@ -3,7 +3,10 @@
     "rootNamespace": "StarFunc.Gameplay",
     "references": [
         "StarFunc.Core",
-        "StarFunc.Data"
+        "StarFunc.Data",
+        "StarFunc.Input",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

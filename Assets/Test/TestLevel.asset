@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33784e1d38528d2968ddc2a0e6d7f2e5, type: 3}
+  m_Name: TestLevel
+  m_EditorClassIdentifier: StarFunc.Data::StarFunc.Data.LevelData
+  LevelId: Test
+  LevelIndex: 0
+  Type: 1
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 5}
+  GridStep: 1
+  Stars:
+  - StarId: 0
+    Coordinate: {x: 1, y: 1}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: 
+  - StarId: 1
+    Coordinate: {x: 2, y: 2}
+    InitialState: 3
+    IsControlPoint: 0
+    IsDistractor: 1
+    BelongsToSolution: 0
+    RevealAfterAction: 
+  - StarId: 2
+    Coordinate: {x: 3, y: 3}
+    InitialState: 2
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 0
+    RevealAfterAction: 
+  - StarId: 3
+    Coordinate: {x: 4, y: 4}
+    InitialState: 4
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 0
+    RevealAfterAction: 
+  TaskType: 0
+  ReferenceFunctions: []
+  AnswerOptions:
+  - OptionId: Option 1
+    Text: Test
+    Value: 10
+    IsCorrect: 0
+  - OptionId: Option 2
+    Text: Test 2
+    Value: 15
+    IsCorrect: 1
+  AccuracyThreshold: 0
+  StarRating:
+    ThreeStarMaxErrors: 0
+    TwoStarMaxErrors: 0
+    OneStarMaxErrors: 0
+    TimerAffectsRating: 0
+    ThreeStarMaxTime: 0
+  MaxAttempts: 0
+  MaxAdjustments: 0
+  UseMemoryMode: 0
+  MemoryDisplayDuration: 0
+  GraphVisibility:
+    PartialReveal: 0
+    InitialVisibleSegments: 0
+    RevealPerCorrectAction: 0
+  ShowHints: 0
+  Hints: []
+  FragmentReward: 0

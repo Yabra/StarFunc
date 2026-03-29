@@ -4,7 +4,9 @@
     "references": [
         "StarFunc.Core",
         "StarFunc.Data",
-        "StarFunc.Meta"
+        "StarFunc.Meta",
+        "StarFunc.Gameplay",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
