@@ -101,3 +101,16 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 .vscode/mcp.json
+
+.venv
+*/__pycache__/*
+*.pyc
+*.pyo
+*.pyd
+*.env
+
+.mypy_cache/*
+.pytest_cache/*
+.ruff_cache/*
+dist/
+build/

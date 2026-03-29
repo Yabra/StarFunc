@@ -1,0 +1,19 @@
+# Dev overrides — volume mounts, debug ports, no Nginx
+services:
+  api:
+    build: .
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "8000:8000"
+      - "5678:5678" # debugpy
+    environment:
+      ENV: development
+      LOG_LEVEL: DEBUG
+    command:
+      - uvicorn
+      - app.main:app
+      - --host=0.0.0.0
+      - --port=8000
+      - --reload
+      - --reload-dir=/app/src
