@@ -213,7 +213,7 @@
   - В `Awake()`: создаёт и регистрирует `SceneFlowManager` (DontDestroyOnLoad)
   - Пока регистрирует только SceneFlowManager (остальные сервисы добавятся позже)
   - В `Start()`: вызывает `SceneFlowManager.LoadScene("Hub")`
-  - **Дополнение (API.md §10.5):** В итоговом виде (после задач 1.12–1.13 и 2.12–2.15) порядок инициализации должен стать: 1) NetworkMonitor 2) AuthService (register/refresh) 3) LocalSaveService 4) CloudSaveClient (попытка загрузить облачное, мерж) 5) HybridSaveService → `Register<ISaveService>()` 6) ContentService (проверить contentVersion, скачать diff) 7) HybridEconomyService → `Register<IEconomyService>()` 8) HybridLivesService → `Register<ILivesService>()` 9) HybridShopService → `Register<IShopService>()` 10) Остальные сервисы 11) `SceneFlowManager.LoadScene("Hub")`
+  - **Дополнение (API.md §10.5):** В итоговом виде (после задач 1.12–1.13 и 2.12–2.15) порядок инициализации должен стать: 1) NetworkMonitor 2) AuthService (register/refresh) 3) LocalSaveService 4) CloudSaveClient (попытка загрузить облачные данные, слияние) 5) HybridSaveService → `Register<ISaveService>()` 6) ContentService (проверить contentVersion, скачать diff) 7) HybridEconomyService → `Register<IEconomyService>()` 8) HybridLivesService → `Register<ILivesService>()` 9) HybridShopService → `Register<IShopService>()` 10) Остальные сервисы 11) `SceneFlowManager.LoadScene("Hub")`
 
 **Зависимости:** 1.1, 0.2.
 
@@ -370,7 +370,7 @@
   - Автоматическая подстановка заголовков: `Authorization: Bearer <token>`, `Content-Type: application/json`, `Accept-Encoding: gzip`, `X-Client-Version`, `X-Platform`
   - Поддержка `Idempotency-Key` (UUID) для мутирующих запросов (защита от replay-атак, API.md §9.5)
   - Десериализация стандартного ответа `{ status, data, serverTime }` и ошибки `{ status, error: { code, message, details } }`
-  - Стратегия retry по HTTP-кодам (API.md §4.3): 401 → refresh token → retry; 429 → exponential backoff (1s, 2s, 4s), макс. 3; 500/503 → backoff, макс. 3 → offline; timeout → 1 retry → offline
+  - Стратегия retry по HTTP-кодам (API.md §4.3): 401 → refresh token → retry; 429 → экспоненциальная задержка (1с, 2с, 4с), макс. 3; 500/503 → задержка, макс. 3 → offline; timeout → 1 retry → offline
   - Таймауты: 10 сек hard, 5 сек soft (переход в offline)
   - Обработка gzip (Content-Encoding)
 - `Infrastructure/Network/ApiEndpoints.cs` — статический класс с константами URL:
@@ -382,7 +382,7 @@
   - Используется всеми Hybrid-сервисами для принятия решения: отправлять запрос или ставить в очередь
   - Периодическая проверка + реакция на `Application.internetReachability`
 - `Infrastructure/Network/TokenManager.cs` — хранение и обновление JWT:
-  - Access Token: в памяти (не persisted), TTL 1 час
+  - Access Token: в памяти (не сохраняется на диске), TTL 1 час
   - Refresh Token: в `Application.persistentDataPath` зашифрованный (AES-256, ключ = `deviceId` + hardware fingerprint)
   - Метод `GetAccessToken()` — возвращает текущий token или null
   - Метод `RefreshAccessToken()` — вызывает `POST /auth/refresh`, ротирует refresh token (одноразовый)
@@ -391,7 +391,7 @@
 
 **Зависимости:** 0.1, 1.1.
 
-**Критерий завершения:** `ApiClient` отправляет HTTP-запросы с правильными заголовками, обрабатывает retry-стратегию; `NetworkMonitor` корректно определяет онлайн/оффлайн; `TokenManager` шифрует/дешифрует refresh token.
+**Критерий завершения:** `ApiClient` отправляет HTTP-запросы с правильными заголовками, обрабатывает стратегию повторных запросов; `NetworkMonitor` корректно определяет онлайн/оффлайн; `TokenManager` шифрует/дешифрует refresh token.
 
 ---
 
@@ -472,7 +472,7 @@
   - `SpendFragments` возвращает `false` если баланс недостаточен
   - При изменении баланса вызывает SO-событие `OnFragmentsChanged`
   - Бонус за улучшение результата: при повторном прохождении уровня с бо́льшим количеством звёзд начисляются дополнительные фрагменты (разница)
-  - **Дополнение (API.md §6.6 `GET /content/balance`):** Бонус за улучшение = `improvementBonusPerStar` (из баланс-конфига, default 5) × количество новых звёзд. Стоимость подсказки = `hintCostFragments` (default 10). Стоимость восстановления жизни = `restoreCostFragments` (default 20). Эти значения должны читаться из конфига, а не быть захардкожены.
+  - **Дополнение (API.md §6.6 `GET /content/balance`):** Бонус за улучшение = `improvementBonusPerStar` (из баланс-конфига, default 5) × количество новых звёзд. Стоимость подсказки = `hintCostFragments` (default 10). Стоимость восстановления жизни = `restoreCostFragments` (default 20). Эти значения должны читаться из конфига, а не прописываться жёстко в коде.
   - Автосохранение через `ISaveService` после каждой транзакции
   - **Дополнение (API.md §6.3):** Начисление фрагментов за уровень происходит атомарно внутри `POST /check/level` (не через `/economy/transaction`). Эндпойнт `/economy/transaction` используется только для `shop_purchase` и `skip_level`.
 
@@ -499,7 +499,7 @@
   - `DeductLife()` — списание 1 жизни + событие `OnLivesChanged`
   - При 0 жизней — `HasLives()` возвращает `false`, вход на уровень блокируется
   - Таймер восстановления работает в Update (или через Coroutine)
-  - **Все константы (`maxLives`, `restoreIntervalSeconds`, `restoreCostFragments`) должны читаться из баланс-конфига**, а не быть захардкожены (см. задачу 2.13 — ContentService)
+  - **Все константы (`maxLives`, `restoreIntervalSeconds`, `restoreCostFragments`) должны читаться из баланс-конфига**, а не прописываться жёстко в коде (см. задачу 2.13 — ContentService)
 
 **Зависимости:** 2.1, 1.1.
 
@@ -564,7 +564,7 @@
   - При нажатии на Available/InProgress сектор → переход на `SectorScreen`
   - Счётчики: общие звёзды, фрагменты, жизни (TopBar)
   - Персонаж (Ghost) привязан к текущему сектору
-  - Бэйджи уведомлений на секторах (заглушка, заполнится в Фазе 3)
+  - Значки уведомлений на секторах (заглушка, заполнится в Фазе 3)
   - Кнопки: магазин, настройки
   - Читает данные из `IProgressionService`
 
@@ -676,7 +676,7 @@
   - Порядок инициализации: SaveService → ProgressionService → EconomyService → LivesService → остальные
   - Загрузить `PlayerSaveData` через `SaveService.Load()` и передать в сервисы прогрессии/экономики/жизней
   - После инициализации: `SceneFlowManager.LoadScene("Hub")`
-  - **Дополнение (API.md §10.5):** В итоговом виде (после задач 1.12–1.13 и 2.1a–2.15) порядок инициализации должен включать: 1) NetworkMonitor 2) AuthService 3) LocalSaveService 4) CloudSaveClient + мерж 5) HybridSaveService 6) ContentService 7) HybridEconomyService 8) HybridLivesService 9) HybridShopService 10) Остальные сервисы. На текущем этапе — регистрация Local-сервисов, Hybrid-обёртки добавятся в задачах 2.1a–2.15.
+  - **Дополнение (API.md §10.5):** В итоговом виде (после задач 1.12–1.13 и 2.1a–2.15) порядок инициализации должен включать: 1) NetworkMonitor 2) AuthService 3) LocalSaveService 4) CloudSaveClient + слияние данных 5) HybridSaveService 6) ContentService 7) HybridEconomyService 8) HybridLivesService 9) HybridShopService 10) Остальные сервисы. На текущем этапе — регистрация Local-сервисов, Hybrid-обёртки добавятся в задачах 2.1a–2.15.
 
 **Зависимости:** 2.1–2.6, 2.11.
 
@@ -686,31 +686,31 @@
 
 ### Задача 2.1a — CloudSaveClient, HybridSaveService, SaveMerger (NEW — API.md §6.2, §8, §10, §11)
 
-**Суть:** реализовать облачные сохранения и гибридный сервис с мержем конфликтов.
+**Суть:** реализовать облачные сохранения и гибридный сервис со слиянием конфликтов.
 
 **Файлы:**
 
 - `Infrastructure/Save/CloudSaveClient.cs` — REST-клиент облачных сохранений:
   - `LoadFromCloud() : PlayerSaveData` — `GET /save`. Если `exists == false` → null.
   - `SaveToCloud(PlayerSaveData, int expectedVersion)` — `PUT /save` с optimistic lock.
-  - При `409 SAVE_CONFLICT` → вернуть серверное сохранение из `details.serverSave` для мержа.
-- `Infrastructure/Save/SaveMerger.cs` — логика мержа конфликтов (API.md §8.2):
+  - При `409 SAVE_CONFLICT` → вернуть серверное сохранение из `details.serverSave` для слияния.
+- `Infrastructure/Save/SaveMerger.cs` — логика слияния конфликтов (API.md §8.2):
   - `Merge(PlayerSaveData local, PlayerSaveData server) : PlayerSaveData`
   - Для каждого `levelProgress`: `isCompleted = local || server`, `bestStars = max`, `bestTime` = min (исключая 0), `attempts = max`
   - Для каждого `sectorProgress`: `state = max` по порядку Locked < Available < InProgress < Completed, `starsCollected = max`, `controlLevelPassed = local || server`
-  - `totalFragments = server.totalFragments` (сервер — source of truth для транзакционных ресурсов)
+  - `totalFragments = server.totalFragments` (сервер — единственный источник истины для транзакционных ресурсов)
   - `currentLives = server.currentLives` (сервер пересчитывает авторитетно)
   - `ownedItems = union(local, server)`
-  - `consumables = server` (сервер — source of truth)
+  - `consumables = server` (сервер — единственный источник истины)
   - `version = server.version + 1`
 - `Infrastructure/Save/HybridSaveService.cs` — составной сервис, реализует `ISaveService`:
-  - `Load()`: 1) загрузить локальное 2) попробовать загрузить серверное (async, не блокировать) 3) при наличии обоих — мерж через `SaveMerger` 4) при отсутствии сети — вернуть локальное
+  - `Load()`: 1) загрузить локальное 2) попробовать загрузить серверное (async, не блокировать) 3) при наличии обоих — слияние через `SaveMerger` 4) при отсутствии сети — вернуть локальное
   - `Save()`: 1) сохранить локально (мгновенно) 2) поставить в очередь на облачную синхронизацию (`SyncQueue`)
   - Использует `NetworkMonitor.IsOnline` для принятия решения
 
 **Зависимости:** 2.1, 1.12, 1.13.
 
-**Критерий завершения:** при наличии сети сохранение синхронизируется с облаком, конфликты версий мержатся корректно, при отсутствии сети — fallback на локальное.
+**Критерий завершения:** при наличии сети сохранение синхронизируется с облаком, конфликты версий объединяются корректно, при отсутствии сети — fallback на локальное.
 
 ---
 
@@ -728,7 +728,7 @@
 - `Meta/Economy/HybridEconomyService.cs` — составной сервис, реализует `IEconomyService`:
   - Online: проксирует через `ServerEconomyService`, обновляет локальный баланс по ответу сервера
   - Offline: выполняет через `LocalEconomyService`, ставит транзакцию в `SyncQueue`
-  - Серверный баланс — source of truth (при расхождении после sync → принять серверный)
+  - Серверный баланс — единственный источник истины (при расхождении после sync → принять серверный)
 
 **Зависимости:** 2.3, 1.12.
 
@@ -750,7 +750,7 @@
 - `Meta/Lives/HybridLivesService.cs` — составной сервис, реализует `ILivesService`:
   - Online: делегирует серверу, обновляет локальное состояние по ответу
   - Offline: таймер по локальным часам, небольшая погрешность допустима
-  - Серверное время — source of truth для таймера
+  - Серверное время — единственный источник истины для таймера
 
 **Зависимости:** 2.4, 1.12.
 
@@ -803,7 +803,7 @@
 - `Gameplay/Level/ReconciliationHandler.cs`:
   - Интегрируется в `LevelController`
   - Flow: 1) Локальная проверка (мгновенный фидбек) → 2) Серверная проверка (reconciliation) → 3) Если расхождение — серверный результат авторитетен
-  - При offline: результат ставится в `SyncQueue` как `check_level`, обрабатывается при reconnect
+  - При offline: результат ставится в `SyncQueue` как `check_level`, обрабатывается при восстановлении соединения
   - Сервер **не отклоняет** запросы для заблокированных уровней (для корректной обработки offline-очереди)
   - При повторной отправке завершённого уровня: сервер возвращает лучший результат или обновляет при улучшении
   - Использовать `newSaveVersion` как `expectedVersion` для последующего `PUT /save`
@@ -829,15 +829,15 @@
 - `Infrastructure/Network/SyncProcessor.cs`:
   - Подписывается на `NetworkMonitor.OnConnectivityChanged(true)` → начинает обработку
   - Обработка FIFO, каждая операция независимо
-  - Для `check_level`: если сервер отклоняет (reconciliation mismatch) → принять серверное решение, продолжить остальные
+  - Для `check_level`: если сервер отклоняет (расхождение при сверке) → принять серверное решение, продолжить остальные
   - Каскадных откатов нет: если уровень 5 отклонён, уровни 6 и 7 обрабатываются нормально
   - Принцип «прогресс всегда вперёд»: в спорных ситуациях сервер принимает прогрессию клиента
   - После обработки всей очереди: `PUT /save` с финальным состоянием + `POST /analytics/events` (буферизированные)
-  - Flow при reconnect (API.md Appendix A.4): 1) `POST /auth/refresh` 2) Обработка sync queue 3) `PUT /save` 4) `POST /analytics/events`
+  - Алгоритм при восстановлении соединения (API.md Appendix A.4): 1) `POST /auth/refresh` 2) Обработка sync queue 3) `PUT /save` 4) `POST /analytics/events`
 
 **Зависимости:** 1.12, 2.1a.
 
-**Критерий завершения:** при offline мутации складываются в очередь, при reconnect — обрабатываются последовательно, конфликты разрешаются корректно.
+**Критерий завершения:** при offline мутации складываются в очередь, при восстановлении соединения — обрабатываются последовательно, конфликты разрешаются корректно.
 
 ---
 
@@ -976,19 +976,19 @@
 
 ### Задача 3.7 — NotificationService
 
-**Суть:** реализовать систему бэйджей и уведомлений.
+**Суть:** реализовать систему значков и уведомлений.
 
 **Файлы:**
 
 - `Meta/Notifications/INotificationService.cs` — интерфейс: `HasNewContent(sectorId)`, `HasUnclaimedRewards()`, `MarkSeen(contentId)`, `GetBadgeCount(context)`.
 - `Meta/Notifications/NotificationService.cs` — реализация:
   - Отслеживает: новые разблокированные секторы, восстановленные жизни, доступный контент
-  - Бэйджи на UI-элементах хаба (красные точки с числом)
-  - `MarkSeen()` убирает бэйдж после просмотра
+  - Значки на UI-элементах хаба (красные точки с числом)
+  - `MarkSeen()` убирает значок после просмотра
 
 **Зависимости:** 2.2, 2.4, 2.7.
 
-**Критерий завершения:** на хабе появляются бэйджи при разблокировке сектора, бэйджи исчезают после просмотра.
+**Критерий завершения:** на хабе появляются значки при разблокировке сектора, значки исчезают после просмотра.
 
 ---
 
@@ -1051,13 +1051,13 @@
 
 - `Meta/Audio/IAudioService.cs` — интерфейс: `PlayMusic(AudioClip)`, `StopMusic()`, `PlaySFX(AudioClip)`, `SetMusicVolume(float)`, `SetSFXVolume(float)`.
 - `Meta/Audio/AudioService.cs` — реализация: хранит ссылки на `MusicPlayer` и `SFXPlayer`, делегирует вызовы.
-- `Meta/Audio/MusicPlayer.cs` — фоновая музыка: два AudioSource для crossfade, метод `CrossfadeTo(AudioClip, float duration)`.
+- `Meta/Audio/MusicPlayer.cs` — фоновая музыка: два AudioSource для плавного перехода, метод `CrossfadeTo(AudioClip, float duration)`.
 - `Meta/Audio/SFXPlayer.cs` — пул из 8-12 AudioSource. Метод `Play(AudioClip)` — берёт свободный Source, воспроизводит, возвращает в пул.
 - Интеграция с `FeedbackService` — заменить Debug.Log заглушки на реальные вызовы `AudioService`.
 
 **Зависимости:** 2.5.
 
-**Критерий завершения:** музыка играет на хабе и уровнях с crossfade, SFX воспроизводятся при действиях игрока.
+**Критерий завершения:** музыка играет на хабе и уровнях с плавным переходом, SFX воспроизводятся при действиях игрока.
 
 ---
 
@@ -1115,12 +1115,12 @@
   - Обработка `consumablesUpdate` в ответе (обновление `PlayerSaveData.Consumables`)
 - `Meta/Shop/HybridShopService.cs` — составной сервис, реализует `IShopService`:
   - Online: проксирует через `ServerShopService`, обновляет локальный каталог и баланс
-  - **Offline-покупки (API.md §6.5):** при offline покупка выполняется локально, `cachedPrice` сохраняется в `SyncQueue`. При reconnect сервер принимает покупку по `cachedPrice`, даже если цена уже изменилась. После синхронизации клиент обновляет кеш каталога через `GET /shop/items`.
+  - **Offline-покупки (API.md §6.5):** при offline покупка выполняется локально, `cachedPrice` сохраняется в `SyncQueue`. При восстановлении соединения сервер принимает покупку по `cachedPrice`, даже если цена уже изменилась. После синхронизации клиент обновляет кеш каталога через `GET /shop/items`.
   - Периодическая проверка `catalogVersion` при online (через `GET /content/manifest`)
 
 **Зависимости:** 4.3, 1.12.
 
-**Критерий завершения:** покупки проходят через сервер при online, при offline — локально с cachedPrice, синхронизация после reconnect корректна.
+**Критерий завершения:** покупки проходят через сервер при online, при offline — локально с cachedPrice, синхронизация после восстановления соединения корректна.
 
 ---
 
@@ -1143,7 +1143,7 @@
 
 ---
 
-### Задача 4.5 — Онбординг первых уровней
+### Задача 4.5 — Вводное обучение для первых уровней
 
 **Суть:** настроить обучающие уровни (Tutorial) с пошаговыми подсказками.
 
@@ -1196,7 +1196,7 @@
 - **Canvas splitting**: разделить Canvas на статичный (фон, рамки) и динамичный (таймер, анимации)
 - **LineRenderer**: ограничить сэмплы (50-100 для линейных, до 150 для синусоид)
 - **GC-оптимизация**: убрать аллокации в Update (кэширование, StringBuilder, пулинг)
-- **Batching**: настроить ОрдерслOrder in Layer и Sorting Layers для минимизации draw calls
+- **Batching**: настроить Order in Layer и Sorting Layers для минимизации draw calls
 - **Profiling**: прогнать Unity Profiler на целевом устройстве, убедиться: 60 FPS стабильно, < 300 MB RAM, загрузка сцены < 2 сек.
 
 **Зависимости:** все предыдущие задачи.
@@ -1243,19 +1243,19 @@
 **Файлы:**
 
 - `Infrastructure/Analytics/AnalyticsSender.cs`:
-  - Батчевая отправка: `POST /analytics/events` с массивом `AnalyticsEvent[]`
+  - Пакетная отправка: `POST /analytics/events` с массивом `AnalyticsEvent[]`
   - Периодичность: каждые 30 секунд или при `OnApplicationPause`
   - Ответ сервера: `202 Accepted` с `{ accepted, rejected }`
   - При offline: события буферизуются на диск (`Application.persistentDataPath/analytics_queue.json`)
-  - При reconnect: все буферизированные события отправляются одним (или несколькими) батчем
+  - При восстановлении соединения: все буферизированные события отправляются одним (или несколькими) пакетом
   - Неотправленные события переживают перезапуск приложения
   - Формат каждого события: `{ eventName, timestamp, sessionId, params }`
 - Интеграция с `AnalyticsService` — заменить Debug.Log-заглушки на реальную отправку через `AnalyticsSender`
-- Интеграция с `SyncProcessor` — при reconnect отправка буферизированной аналитики (шаг 4 flow из API.md App. A.4)
+- Интеграция с `SyncProcessor` — при восстановлении соединения отправка буферизированной аналитики (шаг 4 из API.md App. A.4)
 
 **Зависимости:** 4.8, 1.12.
 
-**Критерий завершения:** аналитические события отправляются батчами на сервер, при offline буферизуются и отправляются при reconnect.
+**Критерий завершения:** аналитические события отправляются пакетами на сервер, при offline буферизуются и отправляются при восстановлении соединения.
 
 ---
 
@@ -1268,7 +1268,7 @@
 - **Certificate Pinning** (API.md §9.1): в production-билдах подключить certificate pinning для `api.starfunc.app`. Реализация через `CertificateHandler` в `UnityWebRequest` или через нативный плагин.
 - **Шифрование Refresh Token** (API.md §9.2): AES-256, ключ = комбинация `deviceId` + hardware fingerprint. Хранение в `Application.persistentDataPath`. Обновить `TokenManager` (задача 1.12).
 - **Idempotency-Key** (API.md §9.5): все мутирующие запросы (`POST`, `PUT`) должны отправлять заголовок `Idempotency-Key: <uuid>`. Сервер хранит использованные ключи 24 часа. Повторный запрос с тем же ключом возвращает сохранённый результат. Обновить `ApiClient` (задача 1.12).
-- **Rate Limiting обработка** (API.md §9.4): при `429 Rate Limited` — exponential backoff (1s, 2s, 4s), макс. 3 попытки. Обновить retry-стратегию в `ApiClient`.
+- **Rate Limiting обработка** (API.md §9.4): при `429 Rate Limited` — экспоненциальная задержка (1с, 2с, 4с), макс. 3 попытки. Обновить стратегию повторных запросов в `ApiClient`.
 - **Серверная валидация** (API.md §9.3): клиент не должен доверять себе в вопросах: количество заработанных фрагментов, статус жизней, стоимость покупки, правильность ответа — всё проверяется сервером.
 
 **Зависимости:** 1.12, 1.13.
@@ -1304,7 +1304,7 @@
 - Проверить: сохранения, прогрессию, экономику, жизни, таймеры
 - Проверить: все 6 типов заданий, все типы функций
 - Проверить: катсцены, попапы, магазин, настройки
-- Проверить: edge cases (0 жизней, 0 фрагментов, максимум звёзд, повторное прохождение)
+- Проверить: граничные случаи (0 жизней, 0 фрагментов, максимум звёзд, повторное прохождение)
 - Тестирование на целевых устройствах (минимум 3 Android-устройства разных уровней)
 - Подготовить APK/AAB для Google Play
 - Заполнить страницу в Google Play Console (описание, скриншоты, иконка)

@@ -12,9 +12,9 @@
 | Фаза | Название                  | Задач | Что на выходе                                                                  |
 | ---- | ------------------------- | ----- | ------------------------------------------------------------------------------ |
 | S0   | Инфраструктура            | 4     | Скаффолдинг проекта, БД + миграции, Redis, CI/CD                               |
-| S1   | Аутентификация            | 4     | JWT, регистрация, refresh, middleware pipeline, привязка аккаунтов             |
-| S2   | Основные сервисы          | 5     | Сохранения, экономика, жизни, контент, seed data                               |
-| S3   | Ключевая бизнес-логика    | 5     | Валидация ответов, звёзды, прогрессия, LevelCheckService, мерж сохранений      |
+| S1   | Аутентификация            | 4     | JWT, регистрация, refresh, конвейер middleware, привязка аккаунтов             |
+| S2   | Основные сервисы          | 5     | Сохранения, экономика, жизни, контент, начальные данные                        |
+| S3   | Ключевая бизнес-логика    | 5     | Валидация ответов, звёзды, прогрессия, LevelCheckService, слияние сохранений   |
 | S4   | Магазин, аналитика, тесты | 5     | Магазин, аналитика, health/метрики, интеграционные тесты, OpenAPI-документация |
 
 ---
@@ -87,8 +87,8 @@
 
 - `.env.example` — шаблон переменных окружения (см. Приложение A)
 
-- `main.py` — FastAPI app factory:
-  - `lifespan` async context manager: инициализация DB engine, Redis pool при старте; cleanup при остановке
+- `main.py` — фабрика FastAPI-приложения:
+  - `lifespan` async context manager: инициализация DB engine, Redis pool при старте; освобождение ресурсов при остановке
   - Подключение middleware (заглушки — реализация в S1.3)
   - Подключение роутеров (заглушки — реализация в S1-S4)
   - `prometheus-fastapi-instrumentator` setup
@@ -101,7 +101,7 @@
 
 - `Dockerfile` — multi-stage build на `python:3.12-slim`, uv для зависимостей, Gunicorn + Uvicorn workers
 - `docker-compose.yml` — services: `api`, `db` (postgres:16-alpine), `redis` (redis:7-alpine), healthchecks
-- `docker-compose.override.yml` — dev overrides: volume mounts, debug ports, отключение Nginx
+- `docker-compose.override.yml` — настройки для разработки: монтирование томов, порты отладки, отключение Nginx
 
 **Зависимости:** нет.
 
@@ -152,7 +152,7 @@
 - `infrastructure/redis.py` — подключение и pool:
   - `create_redis_pool(redis_url)` → `redis.asyncio.Redis`
   - `close_redis_pool(redis)` — graceful shutdown
-  - Базовые helpers: `get_cached(key)`, `set_cached(key, value, ttl)`, `delete_cached(key)`
+  - Вспомогательные функции: `get_cached(key)`, `set_cached(key, value, ttl)`, `delete_cached(key)`
 
 - `infrastructure/cache/idempotency_store.py` — хранение Idempotency-Key:
   - `get_response(key: str) -> dict | None` — `GET idempotency:{key}`
@@ -217,7 +217,7 @@
 **Файлы:**
 
 - `infrastructure/auth/jwt_provider.py`:
-  - `JwtProvider(settings: Settings)` — инжектится через `Depends`
+  - `JwtProvider(settings: Settings)` — внедряется через `Depends`
   - `create_access_token(player_id: UUID, platform: str) -> str`:
     - Payload: `sub` (player_id), `platform`, `iat`, `exp` (TTL из settings: 1 час), `iss: "starfunc-api"`, `aud: "starfunc-client"`
     - Алгоритм: HS256 (configurable через settings)
@@ -284,7 +284,7 @@
     4. Отозвать текущий токен (`is_revoked = True`)
     5. Сгенерировать новую пару токенов
     6. Сохранить новый refresh-токен с `replaced_by_id` → старый
-    7. **Детекция кражи:** если токен уже отозван → отозвать **всю цепочку** для этого `player_id` (forced re-auth), вернуть `401`
+    7. **Обнаружение кражи токена:** если токен уже отозван → отозвать **всю цепочку** для этого `player_id` (принудительная повторная аутентификация), вернуть `401`
     8. Вернуть `AuthResponse`
 
 - `api/routers/auth.py`:
@@ -644,7 +644,7 @@
 
 ---
 
-### ~~Задача S2.5 — Seed data для контента~~ (Done)
+### ~~Задача S2.5 — Начальное заполнение контента~~ (Done)
 
 **Суть:** создать скрипт и JSON-данные для первичного заполнения таблицы `content_versions` данными 5 секторов, 100 уровней, баланса и каталога магазина.
 
@@ -708,7 +708,7 @@
 
 - `domain/rules/validation_engine.py` — `ValidationEngine`:
   - `validate(level: LevelDefinition, answer: PlayerAnswer) -> CheckResult`:
-    - Диспатч по `level.task_type` → внутренний метод
+    - Выбор метода по `level.task_type` → внутренний метод
   - `_validate_choose_option(level, selected_option_id) -> CheckResult`:
     - Найти вариант с `is_correct=True` в `level.answer_options`
     - Сравнить с `selected_option_id`
@@ -879,7 +879,7 @@
 
 ### Задача S3.5 — SaveMerger
 
-**Суть:** реализовать стратегию мержа сохранений при конфликтах (409 SAVE_CONFLICT).
+**Суть:** реализовать стратегию слияния сохранений при конфликтах (409 SAVE_CONFLICT).
 
 **Файлы:**
 
@@ -899,10 +899,10 @@
       stars_collected = max(local, server)
       control_passed  = local OR server
 
-    total_fragments         = server            (source of truth)
-    current_lives           = server            (source of truth)
+    total_fragments         = server            (приоритет сервера)
+    current_lives           = server            (приоритет сервера)
     last_life_restore_ts    = server
-    consumables             = server            (source of truth)
+    consumables             = server            (приоритет сервера)
     owned_items             = union(local, server)
 
     current_sector_index    = max(local, server)
@@ -916,7 +916,7 @@
 **Тесты:**
 
 - `tests/unit/test_save_merger.py`:
-  - Мерж двух пустых → дефолт
+  - Слияние двух пустых → значения по умолчанию
   - Прогрессия: local=InProgress + server=Completed → Completed
   - Звёзды: local=2 + server=3 → 3
   - Время: local=15.0 + server=20.0 → 15.0; local=0 + server=20.0 → 20.0
@@ -988,7 +988,7 @@
 
 ### Задача S4.2 — AnalyticsService + analytics router
 
-**Суть:** реализовать приём аналитических событий от клиента — батчевый bulk-insert с валидацией.
+**Суть:** реализовать приём аналитических событий от клиента — пакетный bulk-insert с валидацией.
 
 **Файлы:**
 
@@ -1013,7 +1013,7 @@
 
 **Зависимости:** S0.2.
 
-**Критерий завершения:** `POST /events` принимает батч событий; невалидные фильтруются; bulk-insert работает; возвращает количество accepted/rejected; rate limiting (10 req/min).
+**Критерий завершения:** `POST /events` принимает пакет событий; невалидные фильтруются; bulk-insert работает; возвращает количество accepted/rejected; rate limiting (10 req/min).
 
 ---
 
@@ -1049,7 +1049,7 @@
 
 ### Задача S4.4 — Интеграционные тесты
 
-**Суть:** написать полные end-to-end тесты для критических бизнес-потоков с реальной БД и Redis через testcontainers.
+**Суть:** написать полные сквозные тесты для критических бизнес-потоков с реальной БД и Redis через testcontainers.
 
 **Файлы:**
 
@@ -1058,7 +1058,7 @@
   - `redis_container` — testcontainers Redis
   - `db_session` — async session для тестов (с rollback после каждого теста)
   - `client` — `httpx.AsyncClient` для FastAPI test app
-  - `auth_headers(player_id)` — helper для создания авторизованного клиента
+  - `auth_headers(player_id)` — вспомогательная функция для создания авторизованного клиента
   - Seed data загрузка для тестового окружения
 
 - `tests/integration/test_auth_endpoints.py`:
@@ -1074,7 +1074,7 @@
   - Идемпотентность PUT /save
 
 - `tests/integration/test_check_level_endpoints.py`:
-  - Полный flow: register → check level (верный) → баланс увеличился → save version увеличился
+  - Полный сценарий: register → check level (верный) → баланс увеличился → save version увеличился
   - Check level (неверный) → жизнь списана
   - Check level при 0 жизнях → 422
   - Повторное прохождение с улучшением → бонус
@@ -1174,4 +1174,4 @@ S0.1 ──── S4.3
 | 4.3a (ServerShopService)                       | S4.1             | `GET /shop/items`, `POST /shop/purchase`                 |
 | 4.8a (REST analytics)                          | S4.2             | `POST /analytics/events`                                 |
 
-> **Порядок:** серверные фазы S0–S1 параллелятся с клиентскими фазами 1–2 (клиент работает offline-first). Интеграция начинается с S2, когда клиент получает задачи 1.12–1.13.
+> **Порядок:** серверные фазы S0–S1 выполняются параллельно с клиентскими фазами 1–2 (клиент работает offline-first). Интеграция начинается с S2, когда клиент получает задачи 1.12–1.13.

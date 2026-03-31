@@ -73,7 +73,7 @@ class ContentService:
 
         repo = ContentRepository(session)
         rows = await repo.get_all_active_by_type("level")
-        levels = [row.data for row in rows if row.data.get("sectorId") == sector_id]
+        levels = [row.data for row in rows if row.data.get("sector_id") == sector_id]
         payload = {"levels": levels}
 
         await set_content(self._redis, "levels", payload, content_id=sector_id)

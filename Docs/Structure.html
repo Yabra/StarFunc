@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>STAR FUNC — System Architecture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #FAFAFA; overflow: auto; }
+  </style>
+</head>
+<body>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    (function () {
+        "use strict";
+
+        // ──────────────────────────── CONFIG ────────────────────────────
+        const W = 2600;
+        const H = 5550;
+        const PAD = 30;
+
+        const COLORS = {
+          // Client layers
+          clientScenes: { bg: "#1255a1", fg: "#fff" },
+          clientCore: { bg: "#1255a1", fg: "#fff" },
+          clientServices: { bg: "#1255a1", fg: "#fff" },
+          clientGameplay: { bg: "#42A5F5", fg: "#fff" },
+          clientData: { bg: "#42A5F5", fg: "#fff" },
+          clientInfra: { bg: "#42A5F5", fg: "#fff" },
+          clientUI: { bg: "#42A5F5", fg: "#fff" },
+
+          // API bridge
+          api: { bg: "#FF9800", fg: "#fff" },
+          apiEndpoint: { bg: "#FFB74D", fg: "#1a1a1a" },
+
+          // Server layers
+          serverRouter: { bg: "#2E7D32", fg: "#fff" },
+          serverMiddleware: { bg: "#388E3C", fg: "#fff" },
+          serverService: { bg: "#43A047", fg: "#fff" },
+          serverDomain: { bg: "#66BB6A", fg: "#1a1a1a" },
+          serverInfra: { bg: "#81C784", fg: "#1a1a1a" },
+
+          // Storage
+          postgres: { bg: "#7B1FA2", fg: "#fff" },
+          redis: { bg: "#C62828", fg: "#fff" },
+
+          // Misc
+          arrow: "#546E7A",
+          arrowHighlight: "#FF5722",
+          sectionLabel: "#263238",
+          sectionBg: "#ECEFF1",
+          canvasBg: "#FAFAFA",
+        };
+
+        // ──────────────────────────── NODE BOX DEFAULTS ────────────────
+        const BOX_H = 32;
+        const BOX_RX = 5;
+        const FONT_SIZE = 13;
+        const SECTION_H = 38;
+
+        // ──────────────────────────── SVG SETUP ─────────────────────────
+        const svg = d3.select("body")
+          .append("svg")
+          .attr("viewBox", `0 0 ${W} ${H}`)
+          .attr("width", "100%")
+          .attr("height", "100%")
+          .style("font-family", "'Segoe UI', 'Helvetica Neue', system-ui, sans-serif")
+          .style("background", COLORS.canvasBg);
+
+        // Arrow marker
+        const defs = svg.append("defs");
+        defs.append("marker")
+          .attr("id", "arrowhead")
+          .attr("viewBox", "0 0 10 7")
+          .attr("refX", 10).attr("refY", 3.5)
+          .attr("markerWidth", 8).attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .append("polygon")
+          .attr("points", "0 0, 10 3.5, 0 7")
+          .attr("fill", COLORS.arrow);
+
+        defs.append("marker")
+          .attr("id", "arrowhead-hl")
+          .attr("viewBox", "0 0 10 7")
+          .attr("refX", 10).attr("refY", 3.5)
+          .attr("markerWidth", 8).attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .append("polygon")
+          .attr("points", "0 0, 10 3.5, 0 7")
+          .attr("fill", COLORS.arrowHighlight);
+
+        // Drop shadow filter
+        const filter = defs.append("filter").attr("id", "shadow").attr("x", "-4%").attr("y", "-4%").attr("width", "108%").attr("height", "108%");
+        filter.append("feDropShadow").attr("dx", 1).attr("dy", 1).attr("stdDeviation", 2).attr("flood-opacity", 0.12);
+
+        // ──────────────────────────── HELPERS ───────────────────────────
+        function drawSectionBg(g, x, y, w, h, title, color) {
+          g.append("rect")
+            .attr("x", x).attr("y", y).attr("width", w).attr("height", h)
+            .attr("rx", 10).attr("fill", color || COLORS.sectionBg)
+            .attr("stroke", "#CFD8DC").attr("stroke-width", 1)
+            .style("filter", "url(#shadow)");
+          g.append("text")
+            .attr("x", x + 16).attr("y", y + 24).attr("font-size", 16)
+            .attr("font-weight", 700).attr("fill", COLORS.sectionLabel)
+            .text(title);
+        }
+
+        function drawGroupBg(g, x, y, w, h, title, colorObj) {
+          g.append("rect")
+            .attr("x", x).attr("y", y).attr("width", w).attr("height", h)
+            .attr("rx", 7).attr("fill", colorObj.bg).attr("opacity", 0.12);
+          g.append("rect")
+            .attr("x", x).attr("y", y).attr("width", w).attr("height", SECTION_H)
+            .attr("rx", 7).attr("fill", colorObj.bg).attr("opacity", 0.85);
+          // clip bottom corners of header
+          g.append("rect")
+            .attr("x", x).attr("y", y + SECTION_H - 7).attr("width", w).attr("height", 7)
+            .attr("fill", colorObj.bg).attr("opacity", 0.85);
+          g.append("text")
+            .attr("x", x + 12).attr("y", y + 24)
+            .attr("font-size", 14).attr("font-weight", 700).attr("fill", colorObj.fg)
+            .text(title);
+        }
+
+        function drawBox(g, x, y, w, label, colorObj) {
+          g.append("rect")
+            .attr("x", x).attr("y", y).attr("width", w).attr("height", BOX_H)
+            .attr("rx", BOX_RX).attr("fill", colorObj.bg).attr("opacity", 0.9)
+            .attr("stroke", "#fff").attr("stroke-width", 0.5);
+          g.append("text")
+            .attr("x", x + w / 2).attr("y", y + BOX_H / 2 + 1)
+            .attr("text-anchor", "middle").attr("dominant-baseline", "central")
+            .attr("font-size", FONT_SIZE).attr("fill", colorObj.fg)
+            .text(label);
+          return { cx: x + w / 2, cy: y + BOX_H / 2, x, y, w, h: BOX_H };
+        }
+
+        function drawArrow(g, x1, y1, x2, y2, opts) {
+          const color = (opts && opts.highlight) ? COLORS.arrowHighlight : COLORS.arrow;
+          const marker = (opts && opts.highlight) ? "url(#arrowhead-hl)" : "url(#arrowhead)";
+          const dash = (opts && opts.dashed) ? "6,4" : "none";
+          const sw = (opts && opts.thick) ? 2 : 1.3;
+
+          if (opts && opts.curve) {
+            const midY = (y1 + y2) / 2;
+            g.append("path")
+              .attr("d", `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`)
+              .attr("fill", "none").attr("stroke", color)
+              .attr("stroke-width", sw).attr("stroke-dasharray", dash)
+              .attr("marker-end", marker);
+          } else {
+            g.append("line")
+              .attr("x1", x1).attr("y1", y1).attr("x2", x2).attr("y2", y2)
+              .attr("stroke", color).attr("stroke-width", sw)
+              .attr("stroke-dasharray", dash)
+              .attr("marker-end", marker);
+          }
+        }
+
+        function drawLabel(g, x, y, text, size, opts) {
+          g.append("text")
+            .attr("x", x).attr("y", y)
+            .attr("font-size", size || 12)
+            .attr("font-weight", (opts && opts.bold) ? 700 : 400)
+            .attr("fill", (opts && opts.color) || COLORS.sectionLabel)
+            .attr("text-anchor", (opts && opts.anchor) || "start")
+            .text(text);
+        }
+
+        function boxGrid(g, x0, y0, labels, colorObj, boxW, gapX, gapY, cols) {
+          const nodes = {};
+          labels.forEach((label, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const bx = x0 + col * (boxW + gapX);
+            const by = y0 + row * (BOX_H + gapY);
+            nodes[label] = drawBox(g, bx, by, boxW, label, colorObj);
+          });
+          return nodes;
+        }
+
+        // ──────────────────────────── TITLE ─────────────────────────────
+        const gTitle = svg.append("g");
+        drawLabel(gTitle, W / 2, 40, "STAR FUNC — System Architecture", 28, { bold: true, anchor: "middle" });
+        drawLabel(gTitle, W / 2, 62, "Unity Client · REST API · FastAPI Server · PostgreSQL · Redis", 14, { anchor: "middle", color: "#78909C" });
+
+        // ──────────────────────────── LEGEND ────────────────────────────
+        const gLeg = svg.append("g");
+        const legY = 80;
+        const legItems = [
+          { label: "Client (Unity)", color: COLORS.clientServices },
+          { label: "API Bridge", color: COLORS.api },
+          { label: "Server (FastAPI)", color: COLORS.serverService },
+          { label: "PostgreSQL", color: COLORS.postgres },
+          { label: "Redis", color: COLORS.redis },
+        ];
+        let legX = W / 2 - legItems.length * 100;
+        legItems.forEach(item => {
+          gLeg.append("rect").attr("x", legX).attr("y", legY).attr("width", 18).attr("height", 14).attr("rx", 3).attr("fill", item.color.bg);
+          gLeg.append("text").attr("x", legX + 24).attr("y", legY + 11).attr("font-size", 12).attr("fill", "#455A64").text(item.label);
+          legX += 190;
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 1 — UNITY CLIENT
+        // ════════════════════════════════════════════════════════════════
+        const CLIENT_Y = 120;
+        const CLIENT_H = 1220;
+        const gClient = svg.append("g");
+        drawSectionBg(gClient, PAD, CLIENT_Y, 1800, CLIENT_H, "UNITY CLIENT (Offline-First)", "#E3F2FD");
+
+        // ── 1a. Scenes ──────────────────────────────────────────────────
+        const scenesY = CLIENT_Y + 42;
+        drawGroupBg(gClient, 60, scenesY, 1900 - 340, 90, "Scene Flow", COLORS.clientScenes);
+        const sceneY = scenesY + 50;
+        const scBoot = drawBox(gClient, 100, sceneY, 140, "Boot (init)", COLORS.clientScenes);
+        const scHub = drawBox(gClient, 300, sceneY, 200, "Hub (galaxy map)", COLORS.clientScenes);
+        const scLevel = drawBox(gClient, 600, sceneY, 240, "Level (additive)", COLORS.clientScenes);
+        const scLoading = drawBox(gClient, 900, sceneY, 220, "LoadingOverlay (DDoL)", COLORS.clientScenes);
+        const scCutscene = drawBox(gClient, 1200, sceneY, 200, "CutscenePopup", COLORS.clientScenes);
+
+        drawArrow(gClient, scBoot.x + scBoot.w, scBoot.cy, scHub.x, scHub.cy, {});
+        drawArrow(gClient, scHub.x + scHub.w, scHub.cy, scLevel.x, scLevel.cy, {});
+        drawArrow(gClient, scLevel.x, scLevel.cy - 5, scHub.x + scHub.w, scHub.cy - 5, { dashed: true });
+        drawLabel(gClient, 415, sceneY - 6, "→", 14, { color: "#fff" });
+        drawLabel(gClient, 770, sceneY - 6, "⇄ additive", 11, { color: "#B3E5FC" });
+
+        // ── 1b. Core — ServiceLocator + Events ──────────────────────────
+        const coreY = scenesY + 100;
+        drawGroupBg(gClient, 60, coreY, 620, 200, "Core", COLORS.clientCore);
+
+        const slY = coreY + 46;
+        const slBox = drawBox(gClient, 80, slY, 220, "ServiceLocator", COLORS.clientCore);
+        drawLabel(gClient, 80, slY + 46, "Register<T>() / Get<T>() / Contains<T>()", 10, { color: "#475564" });
+
+        drawLabel(gClient, 80, slY + 70, "Event System (ScriptableObject)", 13, { bold: true, color: "#475564" });
+        const eventLabels = [
+          "OnLevelStarted", "OnLevelCompleted", "OnLevelFailed",
+          "OnStarCollected", "OnAnswerConfirmed", "OnFunctionChanged",
+          "OnSectorUnlocked", "OnConstellationRestored", "OnLivesChanged",
+          "OnFragmentsChanged", "OnLevelSkipped", "OnGhostEmotionChanged",
+        ];
+        const evtCols = 3;
+        const evtW = 182;
+        eventLabels.forEach((e, i) => {
+          const col = i % evtCols;
+          const row = Math.floor(i / evtCols);
+          drawLabel(gClient, 90 + col * evtW, slY + 88 + row * 17, "• " + e, 10.5, { color: "#475564" });
+        });
+
+        // ── 1c. Services (registered in ServiceLocator) ─────────────────
+        const svcY = coreY + 4;
+        drawGroupBg(gClient, 700, svcY, 1900 - 980, 210, "Registered Services (via ServiceLocator)", COLORS.clientServices);
+
+        const svcItems = [
+          { impl: "HybridSaveService", iface: "ISaveService" },
+          { impl: "ProgressionService", iface: "IProgressionService" },
+          { impl: "HybridEconomyService", iface: "IEconomyService" },
+          { impl: "HybridLivesService", iface: "ILivesService" },
+          { impl: "AudioService", iface: "IAudioService" },
+          { impl: "UIService", iface: "IUIService" },
+          { impl: "AnalyticsService", iface: "IAnalyticsService" },
+          { impl: "TimerService", iface: "ITimerService" },
+          { impl: "HybridShopService", iface: "IShopService" },
+          { impl: "NotificationService", iface: "INotificationService" },
+          { impl: "FeedbackService", iface: "IFeedbackService" },
+        ];
+        const svcStartY = svcY + 46;
+        const svcColW = 280;
+        const svcCols = 3;
+        const svcNodes = {};
+        svcItems.forEach((s, i) => {
+          const col = i % svcCols;
+          const row = Math.floor(i / svcCols);
+          const bx = 720 + col * (svcColW + 16);
+          const by = svcStartY + row * (BOX_H + 8);
+          svcNodes[s.impl] = drawBox(gClient, bx, by, svcColW, `${s.impl} → ${s.iface}`, COLORS.clientServices);
+        });
+
+        // Arrow from ServiceLocator to Services area
+        drawArrow(gClient, slBox.x + slBox.w, slBox.cy, 700, svcY + 100, { curve: true, thick: true });
+
+        // ── 1d. Gameplay Layer ──────────────────────────────────────────
+        const gpY = coreY + 225;
+        drawGroupBg(gClient, 60, gpY, 1900 - 150, 300, "Gameplay Layer", COLORS.clientGameplay);
+
+        // LevelController - central
+        const lcY = gpY + 50;
+        const lcBox = drawBox(gClient, 100, lcY, 240, "LevelController", COLORS.clientGameplay);
+        drawLabel(gClient, 100, lcY + 42, "Central orchestrator for level logic", 10, { color: "#475564" });
+
+        // LevelController children
+        const lcChildren = [
+          "CoordinatePlane", "StarManager", "AnswerSystem",
+          "ValidationSystem", "LevelTimer", "ErrorCounter",
+          "HintSystem", "ActionHistory", "LevelResultCalculator",
+        ];
+        const lcChildY = lcY + 62;
+        const lcChildNodes = {};
+        lcChildren.forEach((c, i) => {
+          const col = i % 3;
+          const row = Math.floor(i / 3);
+          const bx = 100 + col * 200;
+          const by = lcChildY + row * (BOX_H + 8);
+          lcChildNodes[c] = drawBox(gClient, bx, by, 190, c, COLORS.clientGameplay);
+        });
+
+        // CoordinatePlane sub-components
+        const cpSubY = lcY + 10;
+        const cpSubs = ["GridRenderer", "AxisRenderer", "CoordinateLabeler", "TouchInputHandler"];
+        drawLabel(gClient, 730, cpSubY - 4, "CoordinatePlane internals", 11, { bold: true, color: "#1565C0" });
+        cpSubs.forEach((s, i) => {
+          drawBox(gClient, 730, cpSubY + 14 + i * (BOX_H + 4), 180, s, COLORS.clientGameplay);
+        });
+
+        // StarEntity
+        const seY = cpSubY;
+        drawLabel(gClient, 940, seY - 4, "StarEntity", 11, { bold: true, color: "#1565C0" });
+        const starSubs = ["StarVisuals", "StarAnimator", "StarInteraction"];
+        starSubs.forEach((s, i) => {
+          drawBox(gClient, 940, seY + 14 + i * (BOX_H + 4), 160, s, COLORS.clientGameplay);
+        });
+        drawLabel(gClient, 940, seY + 132, "States: Hidden→Active→Placed→Restored", 10, { color: "#475564" });
+        drawLabel(gClient, 940, seY + 146, "           ↘Incorrect→Active", 10, { color: "#475564" });
+
+        // GraphRenderer
+        drawLabel(gClient, 1130, seY - 4, "GraphRenderer", 11, { bold: true, color: "#1565C0" });
+        const grSubs = ["FunctionEvaluator", "CurveRenderer", "ControlPointsRenderer", "ComparisonOverlay"];
+        grSubs.forEach((s, i) => {
+          drawBox(gClient, 1130, seY + 14 + i * (BOX_H + 4), 180, s, COLORS.clientGameplay);
+        });
+
+        // GhostEntity
+        drawLabel(gClient, 1340, seY - 4, "GhostEntity", 11, { bold: true, color: "#1565C0" });
+        const ghSubs = ["GhostVisuals", "GhostAnimator", "GhostEmotionCtrl", "GhostPositioner"];
+        ghSubs.forEach((s, i) => {
+          drawBox(gClient, 1340, seY + 14 + i * (BOX_H + 4), 170, s, COLORS.clientGameplay);
+        });
+
+        // AnswerSystem task type table
+        const atsY = gpY + 205;
+        drawLabel(gClient, 1560, seY - 4, "AnswerSystem: TaskTypes", 11, { bold: true, color: "#1565C0" });
+        const taskTypes = [
+          "ChooseCoordinate", "ChooseFunction", "AdjustGraph",
+          "BuildFunction", "IdentifyError", "RestoreConstellation",
+        ];
+        taskTypes.forEach((t, i) => {
+          drawBox(gClient, 1560, seY + 14 + i * (BOX_H + 4), 200, t, COLORS.clientGameplay);
+        });
+
+        // ── 1e. Data Layer ──────────────────────────────────────────────
+        const dataY = gpY + 312;
+        drawGroupBg(gClient, 60, dataY, 900, 260, "Data Layer (ScriptableObjects + Models)", COLORS.clientData);
+
+        const dataItems = [
+          "SectorData (SO)", "LevelData (SO)", "FunctionDefinition (SO)",
+          "CutsceneData (SO)", "StarConfig", "StarRatingConfig",
+          "HintConfig", "GraphVisibilityConfig", "PlayerSaveData",
+          "SectorProgress", "LevelProgress", "AnswerOption",
+        ];
+        const dataNodes = boxGrid(gClient, 80, dataY + 46, dataItems, COLORS.clientData, 200, 12, 8, 4);
+
+        // Enums
+        drawLabel(gClient, 80, dataY + 200, "Enums:", 11, { bold: true, color: "#475564" });
+        const enums = ["LevelType", "TaskType", "StarState", "SectorState", "FunctionType", "GhostEmotion", "HintTrigger"];
+        enums.forEach((e, i) => {
+          drawBox(gClient, 80 + i * 118, dataY + 216, 112, e, COLORS.clientData);
+        });
+
+        // ── 1f. Infrastructure Layer ────────────────────────────────────
+        drawGroupBg(gClient, 980, dataY, 1900 - 1240, 260, "Infrastructure & Network Layer", COLORS.clientInfra);
+
+        const infraItems = [
+          "SceneFlowManager", "LocalSaveService", "CloudSaveClient",
+          "HybridSaveService", "SaveMerger (client)", "NetworkMonitor",
+          "ApiClient", "SyncQueue", "TokenManager",
+          "AuthService (client)", "ContentService (loader)", "AnalyticsQueue",
+        ];
+        boxGrid(gClient, 1000, dataY + 46, infraItems, COLORS.clientInfra, 200, 12, 8, 3);
+
+        drawLabel(gClient, 1000, dataY + 210, "Sync Queue (offline-first):", 11, { bold: true, color: "#37474F" });
+        drawLabel(gClient, 1000, dataY + 226, "check_level → shop_purchase → economy_transaction → save → analytics", 10, { color: "#546E7A" });
+        drawLabel(gClient, 1000, dataY + 240, "FIFO processing · independent error handling · no cascading rollbacks", 10, { color: "#546E7A" });
+
+        // ── 1g. UI Layer ────────────────────────────────────────────────
+        const uiY = dataY + 272;
+        drawGroupBg(gClient, 60, uiY, 1900 - 530, 220, "UI Layer (uGUI Stack)", COLORS.clientUI);
+
+        drawLabel(gClient, 80, uiY + 54, "Screens", 12, { bold: true, color: "#1a1a1a" });
+        const screens = ["HubScreen", "SectorScreen", "LevelHUD", "LevelResultScreen", "ShopScreen"];
+        screens.forEach((s, i) => {
+          drawBox(gClient, 80 + i * 170, uiY + 56, 160, s, COLORS.clientUI);
+        });
+
+        drawLabel(gClient, 80, uiY + 105, "Popups", 12, { bold: true, color: "#1a1a1a" });
+        const popups = ["PausePopup", "SettingsPopup", "NoLivesPopup", "SectorUnlockPopup", "SkipLevelPopup", "CutscenePopup"];
+        popups.forEach((s, i) => {
+          drawBox(gClient, 80 + i * 160, uiY + 110, 152, s, COLORS.clientUI);
+        });
+
+        drawLabel(gClient, 80, uiY + 162, "HUD Components:", 12, { bold: true, color: "#1a1a1a" });
+        const huds = ["PauseBtn", "TimerDisplay", "LivesDisplay", "FragmentsDisplay", "AnswerPanel", "FunctionEditor", "ConfirmBtn", "UndoBtn", "ResetBtn", "HintBtn"];
+        huds.forEach((s, i) => {
+          drawBox(gClient, 80 + i * 132, uiY + 164, 124, s, COLORS.clientUI);
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 2 — REST API BRIDGE
+        // ════════════════════════════════════════════════════════════════
+        const API_Y = CLIENT_Y + CLIENT_H + 30;
+        const API_H = 340;
+        const gApi = svg.append("g");
+        drawSectionBg(gApi, PAD, API_Y, 1550 - PAD * 2, API_H, "REST API — HTTPS (TLS 1.2+) · JSON · Bearer JWT · Idempotency-Key", "#FFF3E0");
+
+        drawLabel(gApi, 70, API_Y + 46, "Base: https://api.starfunc.app/api/v1", 12, { color: "#E65100" });
+        drawLabel(gApi, 500, API_Y + 46, "Timeout: 10s hard / 5s soft → offline", 12, { color: "#E65100" });
+        drawLabel(gApi, 960, API_Y + 46, "Compression: gzip", 12, { color: "#E65100" });
+        drawLabel(gApi, 1200, API_Y + 46, "Versioning: /api/v1/ URL prefix", 12, { color: "#E65100" });
+
+        // Endpoint groups
+        const epY = API_Y + 60;
+        const epGroups = [
+          { title: "Auth", endpoints: ["POST /register", "POST /refresh", "POST /link"] },
+          { title: "Save", endpoints: ["GET /save", "PUT /save"] },
+          { title: "Economy", endpoints: ["GET /balance", "POST /transaction"] },
+          { title: "Lives", endpoints: ["GET /lives", "POST /restore", "POST /restore-all"] },
+          { title: "Shop", endpoints: ["GET /items", "POST /purchase"] },
+          { title: "Content", endpoints: ["GET /manifest", "GET /sectors", "GET /sectors/{id}/levels", "GET /levels/{id}", "GET /balance"] },
+          { title: "Check", endpoints: ["POST /level"] },
+          { title: "Analytics", endpoints: ["POST /events"] },
+          { title: "Health", endpoints: ["GET /health", "GET /ready"] },
+        ];
+
+        let epX = 70;
+        const epGroupNodes = {};
+        epGroups.forEach(grp => {
+          const maxW = Math.max(100, ...grp.endpoints.map(e => e.length * 8 + 20));
+          const grpW = maxW + 10;
+          const grpH = 40 + grp.endpoints.length * 27 + 10;
+          gApi.append("rect")
+            .attr("x", epX).attr("y", epY).attr("width", grpW).attr("height", grpH)
+            .attr("rx", 6).attr("fill", COLORS.api.bg).attr("opacity", 0.15);
+          drawLabel(gApi, epX + 8, epY + 18, grp.title, 12, { bold: true, color: "#E65100" });
+          grp.endpoints.forEach((ep, i) => {
+            const isPost = ep.startsWith("POST") || ep.startsWith("PUT");
+            drawBox(gApi, epX + 6, epY + 28 + i * 40, grpW - 12, ep,
+              isPost ? COLORS.api : COLORS.apiEndpoint);
+          });
+          epGroupNodes[grp.title] = { x: epX, y: epY, w: grpW, h: grpH, cx: epX + grpW / 2, cy: epY + grpH / 2 };
+          epX += grpW + 14;
+        });
+
+        // Error codes
+        drawLabel(gApi, 70, epY + 245, "Error Codes: 400 INVALID_REQUEST · 401 TOKEN_EXPIRED · 403 FORBIDDEN · 404 NOT_FOUND · 409 SAVE_CONFLICT/ACCOUNT_ALREADY_LINKED" +
+          " · 422 INSUFFICIENT_FUNDS/NO_LIVES · 429 RATE_LIMITED · 500 INTERNAL · 503 UNAVAILABLE", 10, { color: "#BF360C" });
+        drawLabel(gApi, 70, epY + 261, "Retry: 401→refresh→retry · 409→conflict resolution · 422→no retry · 429→exponential backoff · 500,503→backoff→offline · timeout→1 retry→offline", 10, { color: "#BF360C" });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 3 — SERVER (FastAPI)
+        // ════════════════════════════════════════════════════════════════
+        const SRV_Y = API_Y + API_H + 30;
+        const SRV_H = 1330;
+        const gSrv = svg.append("g");
+        drawSectionBg(gSrv, PAD, SRV_Y, 1550 - PAD * 2, SRV_H, "SERVER — FastAPI (Python 3.12+ · Uvicorn/Gunicorn · Async)", "#E8F5E9");
+
+        // ── 3a. API Layer (Routers + Middleware + Schemas) ──────────────
+        const rtrY = SRV_Y + 42;
+        drawGroupBg(gSrv, 60, rtrY, 1550 - 120, 250, "API Layer (Presentation)", COLORS.serverRouter);
+
+        drawLabel(gSrv, 80, rtrY + 48, "Routers (1:1 with endpoints):", 12, { bold: true, color: "#C8E6C9" });
+        const routers = ["auth", "save", "economy", "lives", "shop", "content", "check", "analytics", "health"];
+        routers.forEach((r, i) => {
+          drawBox(gSrv, 80 + i * 146, rtrY + 60, 138, `${r}.router`, COLORS.serverRouter);
+        });
+
+        drawLabel(gSrv, 80, rtrY + 104, "Middleware Pipeline (in order):", 12, { bold: true, color: "#C8E6C9" });
+        const middlewares = [
+          "1. RequestLogging", "2. ExceptionHandler", "3. RateLimiting",
+          "4. ClientInfo", "5. JWT Auth", "6. Idempotency",
+          "7. Pydantic Validation", "8. ServerTime",
+        ];
+        middlewares.forEach((m, i) => {
+          drawBox(gSrv, 80 + i * 175, rtrY + 116, 168, m, COLORS.serverMiddleware);
+        });
+
+        drawLabel(gSrv, 80, rtrY + 158, "Pydantic Schemas (Request/Response DTOs):", 12, { bold: true, color: "#C8E6C9" });
+        const schemas = [
+          "ApiResponse", "ApiErrorResponse", "RegisterRequest", "AuthResponse",
+          "SaveRequest", "TransactionRequest", "CheckLevelRequest", "CheckLevelResponse",
+          "LivesResponse", "PurchaseRequest", "ContentManifestResponse",
+        ];
+        schemas.forEach((s, i) => {
+          const col = i % 6;
+          const row = Math.floor(i / 6);
+          drawBox(gSrv, 80 + col * 220, rtrY + 170 + row * (BOX_H + 2), 212, s, COLORS.serverRouter);
+        });
+
+        // ── 3b. Service Layer ───────────────────────────────────────────
+        const svcSrvY = rtrY + 260;
+        drawGroupBg(gSrv, 60, svcSrvY, 1550 - 120, 330, "Service Layer (Use Cases)", COLORS.serverService);
+
+        const srvServices = [
+          { name: "AuthService", desc: "register, refresh, link · JWT creation · token rotation · theft detection" },
+          { name: "SaveService", desc: "GET/PUT save · optimistic lock · version check · 409 SAVE_CONFLICT" },
+          { name: "EconomyService", desc: "get balance · execute transaction · SELECT FOR UPDATE · idempotency" },
+          { name: "LivesService", desc: "recalculate by server time · restore one/all · fragment deduction" },
+          { name: "LevelCheckService", desc: "ATOMIC: validate → economy → lives → progression → save version" },
+          { name: "ShopService", desc: "catalog · purchase · cached_price for offline · consumables update" },
+          { name: "ContentService", desc: "manifest · sectors · levels · balance config · Redis cache" },
+          { name: "AnalyticsService", desc: "bulk ingest · event whitelist · 202 Accepted · async processing" },
+        ];
+
+        const srvSvcNodes = {};
+        srvServices.forEach((s, i) => {
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          const bx = 80 + col * (1550 / 2 - 60);
+          const by = svcSrvY + 48 + row * 62;
+          srvSvcNodes[s.name] = drawBox(gSrv, bx, by, 260, s.name, COLORS.serverService);
+          drawLabel(gSrv, bx + 270, by + BOX_H / 2 + 1, s.desc, 10.5, { color: "#2E7D32" });
+        });
+
+        // LevelCheckService algorithm
+        drawLabel(gSrv, 80, svcSrvY + 283, "LevelCheckService algorithm: Load Level → Load Save (FOR UPDATE) → Recalc Lives → Validate Answer →", 10.5, { color: "#1B5E20" });
+        drawLabel(gSrv, 80, svcSrvY + 298, "  [valid] → calc stars → calc fragments → update progress → unlock levels/sectors → inc save version", 10.5, { color: "#1B5E20" });
+        drawLabel(gSrv, 80, svcSrvY + 313, "  [invalid] → deduct 1 life → check fail (no_lives / max_attempts) → inc save version", 10.5, { color: "#1B5E20" });
+
+        // ── 3c. Domain Layer ────────────────────────────────────────────
+        const domY = svcSrvY + 340;
+        drawGroupBg(gSrv, 60, domY, 1550 - 120, 350, "Domain Layer (Business Logic — framework-free)", COLORS.serverDomain);
+
+        drawLabel(gSrv, 80, domY + 56, "Domain Rules", 12, { bold: true, color: "#1B5E20" });
+        const domRules = [
+          "ValidationEngine", "StarRatingCalculator",
+          "ProgressionRules", "EconomyRules",
+          "LivesRules", "SaveMerger",
+        ];
+        const domRuleNodes = {};
+        domRules.forEach((r, i) => {
+          const col = i % 3;
+          const row = Math.floor(i / 3);
+          domRuleNodes[r] = drawBox(gSrv, 80 + col * 240, domY + 68 + row * (BOX_H + 8), 228, r, COLORS.serverDomain);
+        });
+
+        // ValidationEngine detail
+        drawLabel(gSrv, 80, domY + 154, "ValidationEngine methods per TaskType:", 11, { bold: true, color: "#2E7D32" });
+        const valMethods = [
+          "ChooseCoordinate → _validate_choose_option",
+          "ChooseFunction   → _validate_choose_option",
+          "AdjustGraph      → _validate_function (RMSD)",
+          "BuildFunction    → _validate_function (control pts)",
+          "IdentifyError    → _validate_identify_stars",
+          "RestoreConstell. → _validate_place_stars",
+        ];
+        valMethods.forEach((m, i) => {
+          drawLabel(gSrv, 90 + (i % 2) * 420, domY + 166 + Math.floor(i / 2) * 16, "• " + m, 10.5, { color: "#388E3C" });
+        });
+
+        drawLabel(gSrv, 80, domY + 220, "Domain Models (dataclasses)", 12, { bold: true, color: "#1B5E20" });
+        const domModels = [
+          "PlayerSaveData", "SectorProgress", "LevelProgress",
+          "LevelDefinition", "SectorDefinition", "StarDefinition",
+          "ShopItemDefinition", "PlayerAnswer", "CheckResult",
+          "BalanceConfig", "StarRatingConfig", "LivesState",
+        ];
+        domModels.forEach((m, i) => {
+          const col = i % 4;
+          const row = Math.floor(i / 4);
+          drawBox(gSrv, 80 + col * 230, domY + 234 + row * (BOX_H + 4), 220, m, COLORS.serverDomain);
+        });
+
+        // ── 3d. Infrastructure Layer ────────────────────────────────────
+        const srvInfY = domY + 360;
+        drawGroupBg(gSrv, 60, srvInfY, 1550 - 120, 325, "Infrastructure Layer", COLORS.serverInfra);
+
+        drawLabel(gSrv, 80, srvInfY + 53, "Repositories (SQLAlchemy async)", 12, { bold: true, color: "#1B5E20" });
+        const repos = ["PlayerRepository", "SaveRepository", "TransactionRepository", "ContentRepository", "AnalyticsRepository"];
+        repos.forEach((r, i) => {
+          drawBox(gSrv, 80 + i * 240, srvInfY + 58, 230, r, COLORS.serverInfra);
+        });
+
+        drawLabel(gSrv, 80, srvInfY + 105, "Cache / Redis Stores", 12, { bold: true, color: "#1B5E20" });
+        const caches = ["IdempotencyStore", "TokenStore", "RateLimiter", "ContentCache"];
+        caches.forEach((c, i) => {
+          drawBox(gSrv, 80 + i * 230, srvInfY + 112, 220, c, COLORS.serverInfra);
+        });
+
+        drawLabel(gSrv, 80, srvInfY + 159, "Auth Providers", 12, { bold: true, color: "#1B5E20" });
+        const authProviders = ["JwtProvider", "GoogleVerifier", "AppleVerifier"];
+        authProviders.forEach((a, i) => {
+          drawBox(gSrv, 80 + i * 200, srvInfY + 166, 190, a, COLORS.serverInfra);
+        });
+
+        drawLabel(gSrv, 80, srvInfY + 213, "Database (SQLAlchemy 2.0 async engine)", 12, { bold: true, color: "#1B5E20" });
+        drawBox(gSrv, 80, srvInfY + 220, 300, "AsyncSession + Engine (PostgreSQL)", COLORS.serverInfra);
+        drawBox(gSrv, 400, srvInfY + 220, 260, "Redis Connection Pool", COLORS.serverInfra);
+
+        drawLabel(gSrv, 80, srvInfY + 267, "Alembic Migrations", 12, { bold: true, color: "#1B5E20" });
+        drawBox(gSrv, 80, srvInfY + 274, 200, "alembic/ (versions)", COLORS.serverInfra);
+        drawBox(gSrv, 300, srvInfY + 274, 200, "seed/ (seed_content.py)", COLORS.serverInfra);
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 4 — STORAGE
+        // ════════════════════════════════════════════════════════════════
+        const STR_Y = SRV_Y + SRV_H + 30;
+        const STR_H = 770;
+        const gStr = svg.append("g");
+        drawSectionBg(gStr, PAD, STR_Y, 720 - PAD * 2, STR_H, "PERSISTENT STORAGE", "#F3E5F5");
+
+        // PostgreSQL
+        const pgY = STR_Y + 42;
+        drawGroupBg(gStr, 60, pgY, (1100 - 140) * 0.62, 310, "PostgreSQL 16+", COLORS.postgres);
+
+        const pgTables = [
+          { name: "players", cols: "id UUID PK · device_id UNIQUE · platform · google_play_id · apple_gc_id" },
+          { name: "player_saves", cols: "id BIGSERIAL · player_id FK · version · save_data JSONB" },
+          { name: "transactions", cols: "id UUID PK · player_id FK · type · amount · reason · idempotency_key" },
+          { name: "refresh_tokens", cols: "id UUID PK · player_id FK · token_hash · expires_at · is_revoked · replaced_by_id" },
+          { name: "content_versions", cols: "id SERIAL · content_type · content_id · version · data JSONB · is_active" },
+          { name: "analytics_events", cols: "id BIGSERIAL · player_id · event_name · params JSONB · client_ts · server_ts" },
+        ];
+        pgTables.forEach((t, i) => {
+          const by = pgY + 48 + i * 42;
+          drawBox(gStr, 80, by, 200, t.name, COLORS.postgres);
+          drawLabel(gStr, 290, by + BOX_H / 2 + 1, t.cols, 10, { color: "#6A1B9A" });
+        });
+
+        // Redis
+        const rdX = PAD * 2;
+        const rdY = pgY + 330;
+        drawGroupBg(gStr, rdX, rdY, (1450 - 140) * 0.38 - 10, 380, "Redis 7+", COLORS.redis);
+
+        const redisKeys = [
+          { pattern: "idempotency:{key}", ttl: "24h", purpose: "Stored responses for idempotent replay" },
+          { pattern: "rate:{playerId}:{ep}", ttl: "1 min", purpose: "Per-player rate limiting counters" },
+          { pattern: "rate:ip:{ip}:{ep}", ttl: "1 min", purpose: "Per-IP rate limiting (auth)" },
+          { pattern: "content:manifest", ttl: "5 min", purpose: "Cached content manifest" },
+          { pattern: "content:sector:{id}", ttl: "10 min", purpose: "Cached sector definitions" },
+          { pattern: "content:levels:{id}", ttl: "10 min", purpose: "Cached levels per sector" },
+          { pattern: "content:balance", ttl: "10 min", purpose: "Cached global balance config" },
+          { pattern: "content:shop", ttl: "10 min", purpose: "Cached shop catalog" },
+          { pattern: "player:balance:{id}", ttl: "5 min", purpose: "Player fragment cache (invalidated on tx)" },
+        ];
+        redisKeys.forEach((k, i) => {
+          const by = rdY + 48 + i * 36;
+          drawBox(gStr, rdX + 16, by, 240, k.pattern, COLORS.redis);
+          drawLabel(gStr, rdX + 264, by + 18, k.ttl, 9, { color: "#B71C1C", bold: true });
+          drawLabel(gStr, rdX + 300, by + 18, k.purpose, 9, { color: "#C62828" });
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 5 — DATA FLOWS
+        // ════════════════════════════════════════════════════════════════
+        const FLOW_Y = STR_Y + STR_H + 30;
+        const FLOW_H = 330;
+        const gFlow = svg.append("g");
+        drawSectionBg(gFlow, PAD, FLOW_Y, 2050 - PAD * 2, FLOW_H, "KEY DATA FLOWS", "#FFF8E1");
+
+        // Boot Flow
+        const bfY = FLOW_Y + 44;
+        drawLabel(gFlow, 70, bfY, "Boot Flow", 14, { bold: true });
+        const bootSteps = [
+          "1. NetworkMonitor (check connectivity)",
+          "2. POST /auth/register → AuthService → DB (players) → JWT tokens",
+          "3. LocalSaveService.Load() from persistentDataPath",
+          "4. GET /save → CloudSaveClient → merge(local, server)",
+          "5. GET /content/manifest → diff-update sectors/levels",
+          "6. GET /lives → recalculate by server time",
+          "7. Register Hybrid services in ServiceLocator",
+          "8. SceneFlowManager → Load Hub",
+        ];
+        bootSteps.forEach((s, i) => {
+          drawLabel(gFlow, 90, bfY + 18 + i * 17, s, 11, { color: "#7d400b" });
+        });
+
+        // Level Completion Flow
+        const lcfX = 500;
+        drawLabel(gFlow, lcfX, bfY, "Level Completion Flow", 14, { bold: true });
+        const lcfSteps = [
+          "1. Player submits answer",
+          "2. LOCAL: ValidationSystem.ValidateLevel() → instant feedback",
+          "3. LOCAL: update PlayerSaveData in memory",
+          "4. POST /check/level → LevelCheckService:",
+          "-- a. Load LevelDefinition from content_versions",
+          "-- b. Load PlayerSaveData (SELECT ... FOR UPDATE)",
+          "-- c. LivesRules.recalculate() by server time",
+          "-- d. ValidationEngine.validate(level, answer)",
+          "-- e. [valid] StarRating → EconomyRules → ProgressionRules",
+          "-- f. [invalid] Deduct 1 life → check fail conditions",
+          "-- g. Increment save version → write all atomically",
+          "5. Client reconciles if mismatch (server is authoritative)",
+          "6. PUT /save (expectedVersion = newSaveVersion)",
+          "7. POST /analytics/events (batched)",
+        ];
+        lcfSteps.forEach((s, i) => {
+          drawLabel(gFlow, lcfX + 20, bfY + 18 + i * 17, s, 11, { color: "#7d400b" });
+        });
+
+        // Conflict Resolution Flow
+        const crfX = 900;
+        drawLabel(gFlow, crfX, bfY, "Save Conflict Resolution (409 SAVE_CONFLICT)", 14, { bold: true });
+        const crSteps = [
+          "Strategy: \"progress always forward\"",
+          "levelProgress: isCompleted = local OR server · bestStars = MAX · bestTime = MIN (non-zero) · attempts = MAX",
+          "sectorProgress: state = MAX(Locked < Available < InProgress < Completed) · starsCollected = MAX · controlPassed = OR",
+          "totalFragments = SERVER (source of truth) · currentLives = SERVER · consumables = SERVER",
+          "ownedItems = UNION(local, server) · version = server.version + 1 → PUT /save",
+        ];
+        crSteps.forEach((s, i) => {
+          drawLabel(gFlow, crfX + 20, bfY + 18 + i * 18, s, 11, { color: "#7d400b" });
+        });
+
+        // Offline-first strategy
+        const ofX = 1550;
+        drawLabel(gFlow, ofX, bfY, "Offline-First Behavior", 14, { bold: true });
+        const ofItems = [
+          { system: "Save", behavior: "Local save.json as primary · queued for cloud sync" },
+          { system: "Economy", behavior: "Transactions executed locally · queue sent on reconnect" },
+          { system: "Lives", behavior: "Timer by local clock · small drift acceptable" },
+          { system: "Content", behavior: "Cached version · bundled JSON fallback on first launch" },
+          { system: "Validation", behavior: "Local-only · reconciliation via /check/level on reconnect" },
+          { system: "Shop", behavior: "Purchases at cachedPrice · server honors seen price" },
+          { system: "Analytics", behavior: "Buffered to disk · sent in batches on reconnect" },
+        ];
+        ofItems.forEach((item, i) => {
+          drawBox(gFlow, ofX + 20, bfY + 16 + i * (BOX_H + 2), 110, item.system, COLORS.api);
+          drawLabel(gFlow, ofX + 140, bfY + 16 + i * (BOX_H + 2) + BOX_H / 2 + 1, item.behavior, 11, { color: "#7d400b" });
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SECTION 6 — DEPENDENCY MAP
+        // ════════════════════════════════════════════════════════════════
+        const DEP_Y = FLOW_Y + FLOW_H + 30;
+        const DEP_H = 500;
+        const gDep = svg.append("g");
+        drawSectionBg(gDep, PAD, DEP_Y, 1700 - PAD * 2, DEP_H, "SERVICE DEPENDENCY MAP", "#E0F7FA");
+
+        // Client-side dependency graph
+        drawLabel(gDep, 70, DEP_Y + 44, "Client Service Dependencies", 14, { bold: true });
+        const cDepY = DEP_Y + 58;
+
+        const gDepEdgesClient = gDep.append("g"); // edges layer (behind)
+        const gDepNodesClient = gDep.append("g"); // nodes layer (on top)
+
+        const cDepNodes = {};
+        const cDepData = [
+          { id: "Boot", x: 300, y: 0 },
+          { id: "ServiceLocator", x: 300, y: 50 },
+          { id: "ISaveService", x: 100, y: 110 },
+          { id: "IProgressionService", x: 300, y: 110 },
+          { id: "IEconomyService", x: 500, y: 110 },
+          { id: "ILivesService", x: 100, y: 170 },
+          { id: "IAudioService", x: 300, y: 170 },
+          { id: "IUIService", x: 500, y: 170 },
+          { id: "ITimerService", x: 100, y: 230 },
+          { id: "IShopService", x: 300, y: 230 },
+          { id: "IFeedbackService", x: 500, y: 230 },
+          { id: "IAnalyticsService", x: 100, y: 290 },
+          { id: "INotificationService", x: 300, y: 290 },
+          { id: "LevelController", x: 500, y: 290 },
+        ];
+        cDepData.forEach(n => {
+          cDepNodes[n.id] = drawBox(gDepNodesClient, 70 + n.x, cDepY + n.y, 170, n.id, COLORS.clientServices);
+        });
+
+        const cDepEdges = [
+          ["Boot", "ServiceLocator"],
+          ["ServiceLocator", "ISaveService"],
+          ["ServiceLocator", "IProgressionService"],
+          ["ServiceLocator", "IEconomyService"],
+          ["ServiceLocator", "ILivesService"],
+          ["ServiceLocator", "IAudioService"],
+          ["ServiceLocator", "IUIService"],
+          ["ServiceLocator", "ITimerService"],
+          ["ServiceLocator", "IShopService"],
+          ["ServiceLocator", "IFeedbackService"],
+          ["ServiceLocator", "IAnalyticsService"],
+          ["ServiceLocator", "INotificationService"],
+          ["IProgressionService", "LevelController"],
+          ["IEconomyService", "IShopService"],
+          ["ILivesService", "LevelController"],
+        ];
+        cDepEdges.forEach(([from, to]) => {
+          const f = cDepNodes[from];
+          const t = cDepNodes[to];
+          if (f && t) {
+            drawArrow(gDepEdgesClient, f.cx, f.y + f.h, t.cx, t.y, { curve: true });
+          }
+        });
+
+        // Server-side dependency graph
+        drawLabel(gDep, 900, DEP_Y + 44, "Server Service Dependencies", 14, { bold: true });
+        const sDepY = DEP_Y + 58;
+        const sDepOff = 860;
+
+        const gDepEdgesServer = gDep.append("g"); // edges layer (behind)
+        const gDepNodesServer = gDep.append("g"); // nodes layer (on top)
+
+        const sDepNodes = {};
+        const sDepData = [
+          { id: "Routers", x: 350, y: 0 },
+          { id: "Middleware", x: 560, y: 0 },
+          { id: "AuthService", x: 100, y: 60 },
+          { id: "SaveService", x: 300, y: 60 },
+          { id: "EconomyService", x: 500, y: 60 },
+          { id: "LivesService", x: 100, y: 120 },
+          { id: "LevelCheckService", x: 300, y: 120 },
+          { id: "ShopService", x: 500, y: 120 },
+          { id: "ContentService", x: 100, y: 180 },
+          { id: "AnalyticsService", x: 300, y: 180 },
+          { id: "ValidationEngine", x: 100, y: 250 },
+          { id: "StarRatingCalc", x: 300, y: 250 },
+          { id: "ProgressionRules", x: 500, y: 250 },
+          { id: "EconomyRules", x: 100, y: 310 },
+          { id: "LivesRules", x: 300, y: 310 },
+          { id: "SaveMerger", x: 500, y: 310 },
+          { id: "PostgreSQL", x: 200, y: 380 },
+          { id: "Redis", x: 450, y: 380 },
+        ];
+        sDepData.forEach(n => {
+          const color = n.id === "PostgreSQL" ? COLORS.postgres
+            : n.id === "Redis" ? COLORS.redis
+              : n.y <= 0 ? COLORS.serverRouter
+                : n.y <= 180 ? COLORS.serverService
+                  : n.y <= 310 ? COLORS.serverDomain
+                    : COLORS.serverInfra;
+          sDepNodes[n.id] = drawBox(gDepNodesServer, sDepOff + n.x, sDepY + n.y, 170, n.id, color);
+        });
+
+        const sDepEdges = [
+          ["Routers", "AuthService"], ["Routers", "SaveService"], ["Routers", "EconomyService"],
+          ["Routers", "LivesService"], ["Routers", "LevelCheckService"], ["Routers", "ShopService"],
+          ["Routers", "ContentService"], ["Routers", "AnalyticsService"],
+          ["LevelCheckService", "ValidationEngine"], ["LevelCheckService", "StarRatingCalc"],
+          ["LevelCheckService", "ProgressionRules"], ["LevelCheckService", "EconomyRules"],
+          ["LevelCheckService", "LivesRules"],
+          ["SaveService", "SaveMerger"],
+          ["ShopService", "EconomyRules"],
+          ["EconomyService", "EconomyRules"],
+          ["LivesService", "LivesRules"],
+          ["AuthService", "PostgreSQL"], ["SaveService", "PostgreSQL"],
+          ["EconomyService", "PostgreSQL"], ["ContentService", "PostgreSQL"],
+          ["AnalyticsService", "PostgreSQL"],
+          ["AuthService", "Redis"], ["ContentService", "Redis"],
+          ["Middleware", "Redis"],
+        ];
+        sDepEdges.forEach(([from, to]) => {
+          const f = sDepNodes[from];
+          const t = sDepNodes[to];
+          if (f && t) {
+            drawArrow(gDepEdgesServer, f.cx, f.y + f.h, t.cx, t.y, { curve: true });
+          }
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  VERTICAL FLOW ARROWS (Client ↔ API ↔ Server ↔ Storage)
+        // ════════════════════════════════════════════════════════════════
+        const gArrows = svg.append("g");
+
+        // Client → API
+        drawArrow(gArrows, W / 2 - 100, CLIENT_Y + CLIENT_H, W / 2 - 100, API_Y, { thick: true, highlight: true });
+        drawLabel(gArrows, W / 2 - 88, CLIENT_Y + CLIENT_H + 16, "requests (HTTPS)", 11, { color: COLORS.arrowHighlight });
+        drawArrow(gArrows, W / 2 + 100, API_Y, W / 2 + 100, CLIENT_Y + CLIENT_H, { thick: true, highlight: true });
+        drawLabel(gArrows, W / 2 + 112, CLIENT_Y + CLIENT_H + 16, "responses (JSON)", 11, { color: COLORS.arrowHighlight });
+
+        // API → Server
+        drawArrow(gArrows, W / 2, API_Y + API_H, W / 2, SRV_Y, { thick: true, highlight: true });
+
+        // Server → Storage
+        drawArrow(gArrows, 500 / 3, SRV_Y + SRV_H, 500 / 3, STR_Y, { thick: true });
+        drawLabel(gArrows, 500 / 3 + 10, SRV_Y + SRV_H + 16, "SQL queries", 11, { color: COLORS.arrow });
+        drawArrow(gArrows, 2 * 500 / 3, SRV_Y + SRV_H, 2 * 500 / 3, STR_Y, { thick: true });
+        drawLabel(gArrows, 2 * 500 / 3 + 10, SRV_Y + SRV_H + 16, "Redis ops", 11, { color: COLORS.arrow });
+
+        // ════════════════════════════════════════════════════════════════
+        //  GAME CONTENT STRUCTURE
+        // ════════════════════════════════════════════════════════════════
+        const GAME_Y = DEP_Y + DEP_H + 30;
+        const GAME_H = 310;
+        const gGame = svg.append("g");
+        drawSectionBg(gGame, PAD, GAME_Y, W - PAD * 2, GAME_H, "GAME CONTENT STRUCTURE (5 Sectors × 20 Levels = 100 Levels)", "#FCE4EC");
+
+        const sectorData = [
+          { id: "Sector 1", name: "First Trace", func: "Points & Lines", color: "#E91E63" },
+          { id: "Sector 2", name: "Landmark", func: "y = kx + b", color: "#9C27B0" },
+          { id: "Sector 3", name: "Shift", func: "y = a(x-h)² + k", color: "#673AB7" },
+          { id: "Sector 4", name: "Free Form", func: "y = a·sin(bx+c)+d", color: "#3F51B5" },
+          { id: "Sector 5", name: "Last Star", func: "All types mixed", color: "#2196F3" },
+        ];
+
+        sectorData.forEach((s, i) => {
+          const sx = 70 + i * 490;
+          const sy = GAME_Y + 48;
+          gGame.append("rect")
+            .attr("x", sx).attr("y", sy).attr("width", 470).attr("height", 250)
+            .attr("rx", 8).attr("fill", s.color).attr("opacity", 0.08);
+          gGame.append("rect")
+            .attr("x", sx).attr("y", sy).attr("width", 470).attr("height", 30)
+            .attr("rx", 8).attr("fill", s.color).attr("opacity", 0.7);
+          gGame.append("rect")
+            .attr("x", sx).attr("y", sy + 23).attr("width", 470).attr("height", 7)
+            .attr("fill", s.color).attr("opacity", 0.7);
+          drawLabel(gGame, sx + 10, sy + 20, `${s.id}: ${s.name}`, 13, { bold: true, color: "#fff" });
+          drawLabel(gGame, sx + 375, sy + 20, s.func, 11, { color: "#ffffff" });
+
+          // Level template
+          const levels = [
+            { range: "1-2", type: "Tutorial", color: "#4CAF50" },
+            { range: "3-6", type: "Normal", color: "#2196F3" },
+            { range: "7", type: "Bonus", color: "#FF9800" },
+            { range: "8-11", type: "Normal", color: "#2196F3" },
+            { range: "12", type: "Bonus", color: "#FF9800" },
+            { range: "13-16", type: "Normal", color: "#2196F3" },
+            { range: "17-18", type: "Normal+", color: "#1565C0" },
+            { range: "19", type: "Control", color: "#F44336" },
+            { range: "20", type: "Final", color: "#9C27B0" },
+          ];
+          levels.forEach((lv, j) => {
+            const lx = sx + 10 + (j % 5) * 90;
+            const ly = sy + 40 + Math.floor(j / 5) * 50;
+            gGame.append("rect")
+              .attr("x", lx).attr("y", ly).attr("width", 84).attr("height", 38)
+              .attr("rx", 4).attr("fill", lv.color).attr("opacity", 0.85);
+            gGame.append("text")
+              .attr("x", lx + 42).attr("y", ly + 16).attr("text-anchor", "middle")
+              .attr("font-size", 11).attr("font-weight", 700).attr("fill", "#fff")
+              .text(lv.range);
+            gGame.append("text")
+              .attr("x", lx + 42).attr("y", ly + 30).attr("text-anchor", "middle")
+              .attr("font-size", 9).attr("fill", "#E0E0E0")
+              .text(lv.type);
+          });
+
+          // Unlock conditions
+          drawLabel(gGame, sx + 10, sy + 155, "Unlock: control lvl 19 of prev + star threshold", 10, { color: s.color });
+          drawLabel(gGame, sx + 10, sy + 170, "Bonus levels optional — stars not counted for unlock", 10, { color: s.color });
+          drawLabel(gGame, sx + 10, sy + 185, "Sector complete after Final (lvl 20) — constellation restored", 10, { color: s.color });
+
+          // Star rating
+          drawLabel(gGame, sx + 10, sy + 208, "Star Rating (per level):", 10, { bold: true, color: s.color });
+          drawLabel(gGame, sx + 10, sy + 222, "★★★ = 0 errors · ★★ ≤ N errors · ★ ≤ M errors", 10, { color: s.color });
+          drawLabel(gGame, sx + 10, sy + 236, "Timer can optionally affect rating (timerAffectsRating)", 10, { color: "#212d33" });
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  SERVER TASK DEPENDENCY GRAPH
+        // ════════════════════════════════════════════════════════════════
+        const TASK_Y = GAME_Y + GAME_H + 30;
+        const TASK_H = 350;
+        const gTask = svg.append("g");
+        drawSectionBg(gTask, PAD, TASK_Y, W - PAD * 2, TASK_H, "SERVER IMPLEMENTATION PHASES & TASK DEPENDENCIES", "#E8EAF6");
+
+        const phases = [
+          {
+            name: "S0: Infrastructure",
+            tasks: ["S0.1 Scaffold", "S0.2 DB+Migrations", "S0.3 Redis", "S0.4 CI/CD"],
+            color: "#5C6BC0",
+          },
+          {
+            name: "S1: Auth & Base",
+            tasks: ["S1.1 JwtProvider", "S1.2 AuthService", "S1.3 Middleware", "S1.4 Account Link"],
+            color: "#42A5F5",
+          },
+          {
+            name: "S2: Core Services",
+            tasks: ["S2.1 SaveService", "S2.2 EconomyService", "S2.3 LivesService", "S2.4 ContentService", "S2.5 Seed Data"],
+            color: "#66BB6A",
+          },
+          {
+            name: "S3: Business Logic",
+            tasks: ["S3.1 ValidationEngine", "S3.2 StarRatingCalc", "S3.3 ProgressionRules", "S3.4 LevelCheckService", "S3.5 SaveMerger"],
+            color: "#FFA726",
+          },
+          {
+            name: "S4: Polish",
+            tasks: ["S4.1 ShopService", "S4.2 AnalyticsService", "S4.3 Health+Metrics", "S4.4 Integration Tests", "S4.5 API Docs"],
+            color: "#EF5350",
+          },
+        ];
+
+        phases.forEach((phase, pi) => {
+          const px = 70;
+          const py = TASK_Y + 50 + pi * 54;
+          gTask.append("rect")
+            .attr("x", px).attr("y", py).attr("width", W - 140).attr("height", 46)
+            .attr("rx", 6).attr("fill", phase.color).attr("opacity", 0.1);
+          drawLabel(gTask, px + 10, py + 18, phase.name, 12, { bold: true, color: phase.color });
+          phase.tasks.forEach((t, ti) => {
+            drawBox(gTask, px + 230 + ti * 250, py + 6, 240, t, { bg: phase.color, fg: "#fff" });
+          });
+        });
+
+        // Dependency arrows between phases
+        const phaseArrowX = 350;
+        for (let i = 0; i < phases.length - 1; i++) {
+          const y1 = TASK_Y + 50 + i * 54 + 46;
+          const y2 = TASK_Y + 50 + (i + 1) * 54;
+          drawArrow(gTask, phaseArrowX, y1, phaseArrowX, y2, {});
+        }
+
+        // Key dependency lines
+        drawLabel(gTask, 70, TASK_Y + 50 + phases.length * 54 + 10,
+          "Key deps: S0.1→S0.2→S1.2→S2.1→S2.2→S4.1 | S0.2→S2.4→S2.5 | S2.2,S2.3,S3.1,S3.2,S3.3→S3.4 | S3.4→S4.4,S4.5",
+          11, { color: "#3949AB" });
+
+        // ── Watermark ───────────────────────────────────────────────────
+        drawLabel(svg, W / 2, H - 16, "Created from Architecture.md · API.md · Server architecture.md", 11, { anchor: "middle", color: "#B0BEC5" });
+
+      })();
+  </script>
+</body>
+</html>
