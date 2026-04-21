@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace StarFunc.Data
 {
@@ -9,5 +10,8 @@ namespace StarFunc.Data
         public string Text;
         public float Value;
         public bool IsCorrect;
+
+        [Tooltip("Function linked to this option (used by ChooseFunction task type).")]
+        public FunctionDefinition Function;
     }
 }

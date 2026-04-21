@@ -3,7 +3,8 @@
     "rootNamespace": "StarFunc.Meta",
     "references": [
         "StarFunc.Core",
-        "StarFunc.Data"
+        "StarFunc.Data",
+        "StarFunc.Infrastructure"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

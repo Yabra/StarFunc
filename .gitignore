@@ -115,3 +115,4 @@ InitTestScene*.unity*
 dist/
 build/
 Inner docs/
+kaiten_export/

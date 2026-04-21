@@ -47,6 +47,8 @@ namespace StarFunc.Infrastructure
         public int HttpStatus;
         public ApiError Error;
         public bool WentOffline;
+        public string ETag;
+        public bool NotModified;
     }
 
     /// <summary>
@@ -82,6 +84,11 @@ namespace StarFunc.Infrastructure
             return await SendWithRetry<T>("GET", endpoint, null);
         }
 
+        public async Task<ApiResult<T>> GetConditional<T>(string endpoint, string etag)
+        {
+            return await SendWithRetry<T>("GET", endpoint, null, etag);
+        }
+
         public async Task<ApiResult<T>> Post<T>(string endpoint, object body)
         {
             return await SendWithRetry<T>("POST", endpoint, body);
@@ -96,7 +103,8 @@ namespace StarFunc.Infrastructure
 
         #region Core send logic
 
-        async Task<ApiResult<T>> SendWithRetry<T>(string method, string endpoint, object body)
+        async Task<ApiResult<T>> SendWithRetry<T>(string method, string endpoint, object body,
+            string etag = null)
         {
             bool isMutating = method is "POST" or "PUT";
             string idempotencyKey = isMutating ? Guid.NewGuid().ToString() : null;
@@ -104,7 +112,7 @@ namespace StarFunc.Infrastructure
 
             for (int attempt = 0; attempt <= MaxRetries; attempt++)
             {
-                var result = await SendRequest<T>(method, endpoint, body, idempotencyKey);
+                var result = await SendRequest<T>(method, endpoint, body, idempotencyKey, etag);
 
                 // Success — return immediately
                 if (result.IsSuccess)
@@ -166,7 +174,7 @@ namespace StarFunc.Infrastructure
         }
 
         async Task<ApiResult<T>> SendRequest<T>(string method, string endpoint, object body,
-            string idempotencyKey)
+            string idempotencyKey, string etag = null)
         {
             string url = ApiEndpoints.BaseUrl + endpoint;
             string jsonBody = body != null ? JsonConvert.SerializeObject(body, JsonSettings) : null;
@@ -175,6 +183,9 @@ namespace StarFunc.Infrastructure
 
             // Headers
             SetCommonHeaders(request, idempotencyKey);
+
+            if (!string.IsNullOrEmpty(etag))
+                request.SetRequestHeader("If-None-Match", etag);
 
             // Timeout
             request.timeout = HardTimeoutSeconds;
@@ -186,7 +197,9 @@ namespace StarFunc.Infrastructure
             while (!operation.isDone)
                 await Task.Yield();
 
-            return ParseResponse<T>(request);
+            var result = ParseResponse<T>(request);
+            result.ETag = request.GetResponseHeader("ETag");
+            return result;
         }
 
         static UnityWebRequest CreateRequest(string method, string url, string jsonBody)
@@ -240,6 +253,14 @@ namespace StarFunc.Infrastructure
             {
                 HttpStatus = (int)request.responseCode
             };
+
+            // 304 Not Modified — content unchanged
+            if (request.responseCode == 304)
+            {
+                result.IsSuccess = true;
+                result.NotModified = true;
+                return result;
+            }
 
             // Network error / timeout
             if (request.result is UnityWebRequest.Result.ConnectionError

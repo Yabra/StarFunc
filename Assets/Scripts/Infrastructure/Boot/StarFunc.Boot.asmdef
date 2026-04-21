@@ -1,0 +1,19 @@
+{
+    "name": "StarFunc.Boot",
+    "rootNamespace": "StarFunc.Infrastructure",
+    "references": [
+        "StarFunc.Core",
+        "StarFunc.Data",
+        "StarFunc.Infrastructure",
+        "StarFunc.Meta"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -4,6 +4,7 @@
     "references": [
         "StarFunc.Core",
         "StarFunc.Data",
+        "StarFunc.Infrastructure",
         "StarFunc.Input",
         "Unity.TextMeshPro",
         "Unity.InputSystem"

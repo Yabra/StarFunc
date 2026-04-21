@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using StarFunc.Core;
 using StarFunc.Data;
+using StarFunc.Infrastructure;
 using UnityEngine;
 
 namespace StarFunc.Gameplay
@@ -56,6 +58,7 @@ namespace StarFunc.Gameplay
         ActionHistory _actionHistory;
         LevelTimer _levelTimer;
         ILivesService _livesService;
+        ReconciliationHandler _reconciliation;
 
         public LevelState CurrentState => _currentState;
         public LevelData LevelData => _levelData;
@@ -96,6 +99,11 @@ namespace StarFunc.Gameplay
             // Resolve lives service if registered.
             _livesService = ServiceLocator.Contains<ILivesService>()
                 ? ServiceLocator.Get<ILivesService>()
+                : null;
+
+            // Resolve reconciliation handler if registered.
+            _reconciliation = ServiceLocator.Contains<ReconciliationHandler>()
+                ? ServiceLocator.Get<ReconciliationHandler>()
                 : null;
 
             // Block entry when the player has no lives.
@@ -186,6 +194,15 @@ namespace StarFunc.Gameplay
         {
             SetState(LevelState.ShowTask);
 
+            if (_levelData.TaskType == TaskType.ChooseFunction)
+            {
+                // ChooseFunction: single task per level, no star iteration.
+                _answerSystem.Setup(_levelData.AnswerOptions, _levelData.TaskType);
+                Debug.Log("[LevelController] ShowTask: ChooseFunction mode");
+                AwaitInput();
+                return;
+            }
+
             if (_currentStarIndex >= _solutionStars.Count)
             {
                 // All stars solved — calculate result.
@@ -195,7 +212,7 @@ namespace StarFunc.Gameplay
 
             var targetStar = _solutionStars[_currentStarIndex];
 
-            // Set up answer system with the level's options for ChooseCoordinate.
+            // Set up answer system with the level's options.
             _answerSystem.Setup(_levelData.AnswerOptions, _levelData.TaskType);
 
             Debug.Log($"[LevelController] ShowTask: star '{targetStar.StarId}' " +
@@ -219,6 +236,12 @@ namespace StarFunc.Gameplay
 
             SetState(LevelState.ValidateAnswer);
 
+            if (_levelData.TaskType == TaskType.ChooseFunction)
+            {
+                HandleChooseFunctionAnswer(answer);
+                return;
+            }
+
             bool isCorrect = ValidateChooseCoordinate(answer);
 
             if (_onAnswerConfirmed) _onAnswerConfirmed.Raise(isCorrect);
@@ -240,6 +263,58 @@ namespace StarFunc.Gameplay
             else
             {
                 FailAttempt(targetStar);
+            }
+        }
+
+        void HandleChooseFunctionAnswer(PlayerAnswer answer)
+        {
+            var option = _answerSystem.GetOption(answer.SelectedOptionId);
+            bool isCorrect = option.IsCorrect;
+
+            // Secondary validation: compare coefficients against reference.
+            if (isCorrect && option.Function && _levelData.ReferenceFunctions is { Length: > 0 })
+            {
+                isCorrect = _validationSystem.ValidateFunction(
+                    option.Function,
+                    _levelData.ReferenceFunctions[0],
+                    _levelData.AccuracyThreshold);
+            }
+
+            if (_onAnswerConfirmed) _onAnswerConfirmed.Raise(isCorrect);
+
+            _actionHistory.Push(new PlayerAction
+            {
+                ActionType = PlayerActionType.SelectAnswer,
+                TargetId = _levelData.LevelId,
+                PreviousState = LevelState.AwaitInput.ToString(),
+                NewState = isCorrect ? LevelState.CalculateResult.ToString() : LevelState.AwaitInput.ToString()
+            });
+
+            if (isCorrect)
+            {
+                Debug.Log("[LevelController] ChooseFunction: correct answer.");
+                CalculateResult();
+            }
+            else
+            {
+                _errorCount++;
+                _attemptCount++;
+                Debug.Log($"[LevelController] ChooseFunction: incorrect. Errors: {_errorCount}");
+
+                if (_levelData.MaxAttempts > 0 && _attemptCount >= _levelData.MaxAttempts)
+                {
+                    FailLevel("max_attempts_reached");
+                    return;
+                }
+
+                if (_livesService != null && !_livesService.HasLives())
+                {
+                    FailLevel("no_lives");
+                    return;
+                }
+
+                _answerSystem.ResetSelection();
+                AwaitInput();
             }
         }
 
@@ -367,34 +442,92 @@ namespace StarFunc.Gameplay
             _failReason = failReason;
             _levelTimer?.Stop();
 
-            var result = _resultCalculator.Calculate(
+            var localResult = _resultCalculator.Calculate(
                 _levelData, _errorCount, _levelTimer?.GetElapsedTime() ?? 0f,
                 null, 0, failReason);
-            _ = result; // Will be forwarded to fail screen (Task 2.6).
 
             Debug.Log($"[LevelController] Level failed: {failReason}");
 
             if (_onLevelFailed) _onLevelFailed.Raise();
             SetState(LevelState.Failed);
+
+            // Fire reconciliation in the background for the failed attempt.
+            if (_reconciliation != null)
+                _ = ReconcileAsync(localResult);
         }
 
         /// <summary>
-        /// Compute level result via LevelResultCalculator.
+        /// Compute level result via LevelResultCalculator, then run server reconciliation.
         /// </summary>
         void CalculateResult()
         {
             SetState(LevelState.CalculateResult);
 
             _levelTimer.Stop();
-            var result = _resultCalculator.Calculate(
+            var localResult = _resultCalculator.Calculate(
                 _levelData, _errorCount, _levelTimer.GetElapsedTime(),
                 null, 0, _failReason);
 
-            Debug.Log($"[LevelController] Result: {result.Stars} stars, {result.Time:F1}s, " +
-                      $"{result.ErrorCount} errors, {result.FragmentsEarned} fragments" +
-                      (result.ImprovementBonus > 0 ? $" (+{result.ImprovementBonus} improvement)" : ""));
+            Debug.Log($"[LevelController] Local result: {localResult.Stars} stars, {localResult.Time:F1}s, " +
+                      $"{localResult.ErrorCount} errors, {localResult.FragmentsEarned} fragments" +
+                      (localResult.ImprovementBonus > 0 ? $" (+{localResult.ImprovementBonus} improvement)" : ""));
 
-            ShowResult(result);
+            // Show local result immediately for instant feedback.
+            ShowResult(localResult);
+
+            // Fire reconciliation in the background — server result is authoritative.
+            if (_reconciliation != null)
+                _ = ReconcileAsync(localResult);
+        }
+
+        /// <summary>
+        /// Build the last confirmed <see cref="PlayerAnswer"/> for reconciliation payload.
+        /// </summary>
+        PlayerAnswer BuildLastAnswer()
+        {
+            // AnswerSystem holds the most recently confirmed answer.
+            return _answerSystem.LastConfirmedAnswer;
+        }
+
+        async Task ReconcileAsync(LevelResult localResult)
+        {
+            try
+            {
+                var answer = BuildLastAnswer();
+                var authoritative = await _reconciliation.Reconcile(
+                    _levelData.LevelId,
+                    answer,
+                    _levelTimer.GetElapsedTime(),
+                    _errorCount,
+                    _attemptCount,
+                    localResult);
+
+                // If the server disagrees, apply its result.
+                if (authoritative != localResult)
+                    ApplyServerResult(authoritative);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[LevelController] Reconciliation failed: {ex.Message}");
+            }
+        }
+
+        void ApplyServerResult(LevelResult serverResult)
+        {
+            Debug.Log($"[LevelController] Applying server-authoritative result: " +
+                      $"valid={serverResult.IsValid}, stars={serverResult.Stars}, " +
+                      $"failed={serverResult.LevelFailed}");
+
+            if (serverResult.LevelFailed && _currentState != LevelState.Failed)
+            {
+                _failReason = serverResult.FailReason;
+                if (_onLevelFailed) _onLevelFailed.Raise();
+                SetState(LevelState.Failed);
+                return;
+            }
+
+            // Re-raise completed event with the corrected result so UI can update.
+            if (_onLevelCompleted) _onLevelCompleted.Raise(serverResult);
         }
 
         void ShowResult(LevelResult result)

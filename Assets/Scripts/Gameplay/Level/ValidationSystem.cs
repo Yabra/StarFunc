@@ -20,13 +20,24 @@ namespace StarFunc.Gameplay
         }
 
         /// <summary>
-        /// Compare a player-built function against a reference function.
-        /// Stub — full implementation in Phase 2.
+        /// Compare a selected function against a reference function.
+        /// For linear functions compares coefficients within threshold.
         /// </summary>
         public bool ValidateFunction(FunctionDefinition player, FunctionDefinition reference, float threshold)
         {
-            Debug.LogWarning("[ValidationSystem] ValidateFunction is not implemented until Phase 2.");
-            return false;
+            if (player == null || reference == null) return false;
+            if (player.Type != reference.Type) return false;
+
+            if (player.Coefficients == null || reference.Coefficients == null) return false;
+            if (player.Coefficients.Length != reference.Coefficients.Length) return false;
+
+            for (int i = 0; i < reference.Coefficients.Length; i++)
+            {
+                if (Mathf.Abs(player.Coefficients[i] - reference.Coefficients[i]) > threshold)
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -102,6 +113,9 @@ namespace StarFunc.Gameplay
                 case TaskType.ChooseCoordinate:
                     return ValidateLevelChooseCoordinate(level, answer);
 
+                case TaskType.ChooseFunction:
+                    return ValidateLevelChooseFunction(level, answer);
+
                 default:
                     Debug.LogWarning($"[ValidationSystem] ValidateLevel not implemented for TaskType.{level.TaskType}.");
                     return new LevelResult { IsValid = false, Stars = 0, ErrorCount = 0, Time = 0f, FragmentsEarned = 0, MatchPercentage = 0f, Errors = System.Array.Empty<string>() };
@@ -122,6 +136,36 @@ namespace StarFunc.Gameplay
             {
                 if (!ValidateCoordinate(answer.SelectedCoordinate, star.Coordinate, level.AccuracyThreshold))
                     errors++;
+            }
+
+            var calculator = new LevelResultCalculator();
+            return calculator.Calculate(level, errors, 0f);
+        }
+
+        LevelResult ValidateLevelChooseFunction(LevelData level, PlayerAnswer answer)
+        {
+            // Primary check: compare selected function coefficients against the first reference.
+            int errors = 0;
+            if (level.ReferenceFunctions != null && level.ReferenceFunctions.Length > 0
+                && answer.Coefficients != null)
+            {
+                var reference = level.ReferenceFunctions[0];
+                if (reference.Coefficients == null
+                    || reference.Coefficients.Length != answer.Coefficients.Length)
+                {
+                    errors++;
+                }
+                else
+                {
+                    for (int i = 0; i < reference.Coefficients.Length; i++)
+                    {
+                        if (Mathf.Abs(answer.Coefficients[i] - reference.Coefficients[i]) > level.AccuracyThreshold)
+                        {
+                            errors++;
+                            break;
+                        }
+                    }
+                }
             }
 
             var calculator = new LevelResultCalculator();

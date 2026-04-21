@@ -8,7 +8,7 @@ namespace StarFunc.Gameplay
 {
     /// <summary>
     /// Manages answer selection for the current level task.
-    /// Phase 1: only ChooseCoordinate mode is implemented.
+    /// Supports ChooseCoordinate and ChooseFunction modes.
     /// UI widgets (AnswerPanel) subscribe to <see cref="OnOptionsChanged"/>
     /// and call <see cref="SelectOption(int)"/> / <see cref="ConfirmAnswer"/>.
     /// </summary>
@@ -16,6 +16,9 @@ namespace StarFunc.Gameplay
     {
         [Header("SO Events")]
         [SerializeField] GameEvent<AnswerData> _onAnswerSelected;
+
+        [Header("Graph (ChooseFunction)")]
+        [SerializeField] GraphRenderer _graphRenderer;
 
         AnswerOption[] _currentOptions;
         TaskType _currentTaskType;
@@ -35,6 +38,9 @@ namespace StarFunc.Gameplay
         public TaskType CurrentTaskType => _currentTaskType;
         public bool HasSelection => _selectedIndex >= 0;
         public bool IsActive => _isActive;
+
+        /// <summary>The most recently confirmed PlayerAnswer (for reconciliation).</summary>
+        public PlayerAnswer LastConfirmedAnswer { get; private set; }
 
         /// <summary>
         /// Configure the answer system for a new task.
@@ -58,6 +64,13 @@ namespace StarFunc.Gameplay
 
             _selectedIndex = index;
             var option = _currentOptions[index];
+
+            // ChooseFunction: draw the selected function on the graph for preview.
+            if (_currentTaskType == TaskType.ChooseFunction && _graphRenderer && option.Function)
+            {
+                _graphRenderer.Clear();
+                _graphRenderer.DrawFunction(option.Function);
+            }
 
             if (_onAnswerSelected)
             {
@@ -98,13 +111,30 @@ namespace StarFunc.Gameplay
 
             var option = _currentOptions[_selectedIndex];
 
-            return new PlayerAnswer
+            var answer = new PlayerAnswer
             {
                 TaskType = _currentTaskType,
-                AnswerType = AnswerType.ChooseOption,
-                SelectedOptionId = option.OptionId,
-                SelectedCoordinate = new Vector2(option.Value, 0f)
+                SelectedOptionId = option.OptionId
             };
+
+            switch (_currentTaskType)
+            {
+                case TaskType.ChooseFunction:
+                    answer.AnswerType = AnswerType.ChooseOption;
+                    if (option.Function)
+                    {
+                        answer.FunctionType = option.Function.Type;
+                        answer.Coefficients = option.Function.Coefficients;
+                    }
+                    break;
+
+                default:
+                    answer.AnswerType = AnswerType.ChooseOption;
+                    answer.SelectedCoordinate = new Vector2(option.Value, 0f);
+                    break;
+            }
+
+            return answer;
         }
 
         /// <summary>Confirm the current selection and notify LevelController.</summary>
@@ -119,6 +149,7 @@ namespace StarFunc.Gameplay
 
             var answer = GetCurrentAnswer();
             _isActive = false;
+            LastConfirmedAnswer = answer;
 
             Debug.Log($"[AnswerSystem] Answer confirmed: optionId={answer.SelectedOptionId}");
             OnAnswerConfirmed?.Invoke(answer);
