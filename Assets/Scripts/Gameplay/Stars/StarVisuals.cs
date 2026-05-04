@@ -56,6 +56,23 @@ namespace StarFunc.Gameplay
             if (_glowSprite) _glowSprite.gameObject.SetActive(enabled);
         }
 
+        /// <summary>Current main-sprite color (for save/restore around flashes).</summary>
+        public Color GetColor() => _mainSprite ? _mainSprite.color : Color.white;
+
+        /// <summary>Override only the main sprite color (does not touch glow). Used for flashes.</summary>
+        public void SetMainColor(Color color)
+        {
+            if (_mainSprite) _mainSprite.color = color;
+        }
+
+        /// <summary>Set glow opacity in [0..1]. Used by glow-pulse animations.</summary>
+        public void SetGlowAlpha(float alpha)
+        {
+            if (!_glowSprite) return;
+            var c = _glowSprite.color;
+            _glowSprite.color = new Color(c.r, c.g, c.b, Mathf.Clamp01(alpha));
+        }
+
         public void SetAlpha(float alpha)
         {
             var c = _mainSprite.color;

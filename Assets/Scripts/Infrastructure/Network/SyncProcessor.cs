@@ -216,10 +216,18 @@ namespace StarFunc.Infrastructure
 
             try
             {
-                // POST /analytics/events with empty batch — server accepts 202
-                // The analytics buffer is managed externally; this is a signal to flush.
-                await _apiClient.Post<object>(ApiEndpoints.AnalyticsEvents, new { events = Array.Empty<object>() });
-                Debug.Log("[SyncProcessor] Analytics flush sent.");
+                // Task 4.8a: hand off to AnalyticsService so the buffered queue
+                // (analytics_queue.json) gets drained as part of post-reconnect
+                // sync (API.md App. A.4 step 4). If the service isn't
+                // registered yet (e.g. during early boot), this is a no-op.
+                if (StarFunc.Core.ServiceLocator.Contains<IAnalyticsService>())
+                {
+                    var analytics = StarFunc.Core.ServiceLocator.Get<IAnalyticsService>();
+                    if (analytics is AnalyticsService impl)
+                        await impl.FlushAsync();
+                    else
+                        Debug.Log("[SyncProcessor] AnalyticsService is not flushable; skipping.");
+                }
             }
             catch (Exception ex)
             {

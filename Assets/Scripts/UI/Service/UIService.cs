@@ -12,7 +12,13 @@ namespace StarFunc.UI
         [SerializeField] Transform _screenContainer;
         [SerializeField] Transform _popupContainer;
 
+        [Tooltip("Screen to show after Awake hides every collected screen. " +
+                 "Wire this in each scene (e.g. HubScreen for Hub.unity) so the " +
+                 "scene comes up with something visible. Leave null to start blank.")]
+        [SerializeField] UIScreen _defaultScreen;
+
         readonly Dictionary<Type, UIScreen> _screens = new();
+        readonly Dictionary<Type, UIPopup> _popups = new();
         readonly List<UIPopup> _activePopups = new();
         readonly Stack<UIScreen> _screenStack = new();
 
@@ -21,6 +27,16 @@ namespace StarFunc.UI
             CollectScreens();
             CollectPopups();
             ServiceLocator.Register<IUIService>(this);
+        }
+
+        void Start()
+        {
+            // CollectScreens hid every screen — bring the designer-chosen
+            // default back up so the scene doesn't start blank. Without this,
+            // boot loads Hub but HubScreen stays inactive (it was hidden in
+            // Awake and nothing ever calls ShowScreen for it).
+            if (_defaultScreen != null)
+                ShowScreenImmediate(_defaultScreen);
         }
 
         void CollectScreens()
@@ -44,7 +60,11 @@ namespace StarFunc.UI
         {
             var root = _popupContainer ? _popupContainer : transform;
             foreach (var popup in root.GetComponentsInChildren<UIPopup>(true))
+            {
+                var type = popup.GetType();
+                if (!_popups.ContainsKey(type)) _popups[type] = popup;
                 popup.Hide();
+            }
         }
 
         public void ShowScreen<T>() where T : UIScreen
@@ -52,7 +72,26 @@ namespace StarFunc.UI
             var screen = GetScreen<T>();
             if (screen == null) return;
 
-            // Hide current top screen
+            var transition = ServiceLocator.Contains<ITransitionOverlay>()
+                ? ServiceLocator.Get<ITransitionOverlay>()
+                : null;
+
+            if (transition == null)
+            {
+                ShowScreenImmediate(screen);
+                return;
+            }
+
+            // Cover → swap → reveal.
+            transition.TransitionIn(() =>
+            {
+                ShowScreenImmediate(screen);
+                transition.TransitionOut(null);
+            });
+        }
+
+        void ShowScreenImmediate(UIScreen screen)
+        {
             if (_screenStack.Count > 0)
             {
                 var current = _screenStack.Peek();
@@ -96,17 +135,24 @@ namespace StarFunc.UI
 
         public void ShowPopup<T>(PopupData data) where T : UIPopup
         {
-            var root = _popupContainer ? _popupContainer : transform;
-            var popup = root.GetComponentInChildren<T>(true);
-
-            if (popup == null)
-            {
-                Debug.LogWarning($"[UIService] Popup not found: {typeof(T).Name}");
-                return;
-            }
-
+            var popup = GetPopup<T>();
+            if (popup == null) return;
             popup.Show(data);
             _activePopups.Add(popup);
+        }
+
+        public T GetPopup<T>() where T : UIPopup
+        {
+            if (_popups.TryGetValue(typeof(T), out var popup))
+                return (T)popup;
+
+            // Fallback to a dynamic search in case the popup wasn't present
+            // when CollectPopups ran (e.g. spawned at runtime).
+            var root = _popupContainer ? _popupContainer : transform;
+            var found = root.GetComponentInChildren<T>(true);
+            if (found != null) _popups[typeof(T)] = found;
+            else Debug.LogWarning($"[UIService] Popup not found: {typeof(T).Name}");
+            return found;
         }
 
         public void HideAllPopups()

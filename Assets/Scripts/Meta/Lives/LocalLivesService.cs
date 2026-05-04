@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using StarFunc.Core;
 using StarFunc.Data;
 using StarFunc.Infrastructure;
@@ -55,6 +56,7 @@ namespace StarFunc.Meta
             _save.CurrentLives++;
             ResetTimerIfAtMax();
             SaveAndNotify();
+            TrackLifeRestored("fragments");
             return true;
         }
 
@@ -69,6 +71,7 @@ namespace StarFunc.Meta
             _save.CurrentLives = _balanceConfig.MaxLives;
             ResetTimerIfAtMax();
             SaveAndNotify();
+            TrackLifeRestored("fragments");
             return true;
         }
 
@@ -106,6 +109,7 @@ namespace StarFunc.Meta
             {
                 _save.CurrentLives++;
                 _save.LastLifeRestoreTimestamp += _balanceConfig.RestoreIntervalSeconds;
+                TrackLifeRestored("timer");
 
                 if (_save.CurrentLives < _balanceConfig.MaxLives)
                 {
@@ -196,6 +200,14 @@ namespace StarFunc.Meta
             _save.IncrementVersion();
             _saveService.Save(_save);
             _onLivesChanged?.Raise(_save.CurrentLives);
+        }
+
+        static void TrackLifeRestored(string method)
+        {
+            if (!ServiceLocator.Contains<IAnalyticsService>()) return;
+            ServiceLocator.Get<IAnalyticsService>().TrackEvent(
+                AnalyticsEventNames.LifeRestored,
+                new Dictionary<string, object> { ["method"] = method });
         }
     }
 }

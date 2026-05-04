@@ -15,28 +15,90 @@ MonoBehaviour:
   LevelId: sector_4_level_01
   LevelIndex: 1
   Type: 1
-  PlaneMin: {x: 0, y: 0}
-  PlaneMax: {x: 0, y: 0}
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 5}
   GridStep: 1
-  Stars: []
-  TaskType: 0
-  ReferenceFunctions: []
-  AnswerOptions: []
-  AccuracyThreshold: 0
+  Stars:
+  - StarId: s4_l01_star_1
+    Coordinate: {x: -4, y: 1.5}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l01_star_2
+    Coordinate: {x: -2, y: -1.8}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l01_star_3
+    Coordinate: {x: 0, y: 0}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l01_star_4
+    Coordinate: {x: 2, y: 1.8}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  TaskType: 1
+  ReferenceFunctions:
+  - {fileID: 11400000, guid: bcb9c25bad6f2d8829eee55eadeeeb70, type: 2}
+  AnswerOptions:
+  - OptionId: opt_1
+    Text: y = 2sin(x)
+    Value: 0
+    IsCorrect: 1
+    Function: {fileID: 0}
+  - OptionId: opt_2
+    Text: y = 3sin(x)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_3
+    Text: y = 2sin(x) + 1
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_4
+    Text: y = 2sin(2x)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
-    TwoStarMaxErrors: 0
-    OneStarMaxErrors: 0
+    TwoStarMaxErrors: 1
+    OneStarMaxErrors: 3
     TimerAffectsRating: 0
     ThreeStarMaxTime: 0
   MaxAttempts: 0
   MaxAdjustments: 0
+  AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0
   GraphVisibility:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
-  FragmentReward: 0
+  ShowHints: 1
+  Hints:
+  - Trigger: 0
+    HintText: "\u0421\u0438\u043D\u0443\u0441\u043E\u0438\u0434\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u0435\u0442\u0441\u044F
+      \u0447\u0435\u0440\u0435\u0437 \u0440\u0430\u0432\u043D\u044B\u0435 \u043F\u0440\u043E\u043C\u0435\u0436\u0443\u0442\u043A\u0438
+      \u2014 \u044D\u0442\u043E \u0435\u0451 \u043F\u0435\u0440\u0438\u043E\u0434."
+    HighlightPosition: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  - Trigger: 1
+    HintText: "\u041D\u0430\u0439\u0434\u0438 \u0442\u043E\u0447\u043A\u0443, \u043B\u0435\u0436\u0430\u0449\u0443\u044E
+      \u043D\u0430 \u0432\u043E\u043B\u043D\u0435 \u0432 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0439
+      \u0444\u0430\u0437\u0435."
+    HighlightPosition: {x: 0, y: 0}
+    TriggerAfterErrors: 1
+  FragmentReward: 10

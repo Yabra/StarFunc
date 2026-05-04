@@ -15,28 +15,83 @@ MonoBehaviour:
   LevelId: sector_3_level_00
   LevelIndex: 0
   Type: 0
-  PlaneMin: {x: 0, y: 0}
-  PlaneMax: {x: 0, y: 0}
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 10}
   GridStep: 1
-  Stars: []
+  Stars:
+  - StarId: s3_l00_star_1
+    Coordinate: {x: -3, y: 9}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s3_l00_star_2
+    Coordinate: {x: -1, y: 1}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s3_l00_star_3
+    Coordinate: {x: 1, y: 1}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
   TaskType: 0
-  ReferenceFunctions: []
-  AnswerOptions: []
-  AccuracyThreshold: 0
+  ReferenceFunctions:
+  - {fileID: 11400000, guid: 250275ce6624cd09180f71c7d6694fc7, type: 2}
+  AnswerOptions:
+  - OptionId: opt_1
+    Text: (2, 4)
+    Value: 0
+    IsCorrect: 1
+    Function: {fileID: 0}
+  - OptionId: opt_2
+    Text: (2, 5)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_3
+    Text: (3, 4)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_4
+    Text: (2, 3)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  AccuracyThreshold: 0.5
   StarRating:
-    ThreeStarMaxErrors: 0
-    TwoStarMaxErrors: 0
-    OneStarMaxErrors: 0
+    ThreeStarMaxErrors: 1
+    TwoStarMaxErrors: 2
+    OneStarMaxErrors: 4
     TimerAffectsRating: 0
     ThreeStarMaxTime: 0
   MaxAttempts: 0
   MaxAdjustments: 0
+  AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0
   GraphVisibility:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
-  FragmentReward: 0
+  ShowHints: 1
+  Hints:
+  - Trigger: 0
+    HintText: "\u041F\u0430\u0440\u0430\u0431\u043E\u043B\u0430 \u2014 \u044D\u0442\u043E
+      \u043A\u0440\u0438\u0432\u0430\u044F \u0432\u0438\u0434\u0430 y = x\xB2. \u041E\u043D\u0430
+      \u0441\u0438\u043C\u043C\u0435\u0442\u0440\u0438\u0447\u043D\u0430."
+    HighlightPosition: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  - Trigger: 2
+    HintText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0439 \u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u0443
+      \u0437\u0432\u0435\u0437\u0434\u044B, \u043B\u0435\u0436\u0430\u0449\u0435\u0439
+      \u043D\u0430 \u043F\u0430\u0440\u0430\u0431\u043E\u043B\u0435."
+    HighlightPosition: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  FragmentReward: 5

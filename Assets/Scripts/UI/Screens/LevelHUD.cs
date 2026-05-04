@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using StarFunc.Core;
 using StarFunc.Gameplay;
+using StarFunc.Infrastructure;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +16,7 @@ namespace StarFunc.UI
 
         [Header("Level Controller")]
         [SerializeField] LevelController _levelController;
+        [SerializeField] HintSystem _hintSystem;
 
         [Header("Buttons")]
         [SerializeField] Button _pauseButton;
@@ -62,7 +66,22 @@ namespace StarFunc.UI
                 _pauseButton.onClick.AddListener(OnPauseClicked);
 
             if (_hintButton)
-                _hintButton.interactable = false;
+            {
+                if (_hintSystem != null)
+                {
+                    _hintButton.onClick.AddListener(OnHintClicked);
+                    _hintButton.interactable = true;
+                }
+                else
+                {
+                    _hintButton.interactable = false;
+                }
+            }
+        }
+
+        void OnHintClicked()
+        {
+            _hintSystem?.UseHint();
         }
 
         void Update()
@@ -87,12 +106,36 @@ namespace StarFunc.UI
         void OnUndoClicked()
         {
             _levelController.AnswerSystem?.ResetSelection();
+            TrackLevelEvent(AnalyticsEventNames.ActionUndo, includeSector: false,
+                extra: new Dictionary<string, object> { ["actionType"] = "answer_select" });
         }
 
         void OnResetClicked()
         {
             _levelController.ActionHistory?.Reset();
             _levelController.AnswerSystem?.ResetSelection();
+            TrackLevelEvent(AnalyticsEventNames.LevelReset, includeSector: true);
+        }
+
+        void TrackLevelEvent(string name, bool includeSector,
+            Dictionary<string, object> extra = null)
+        {
+            if (!ServiceLocator.Contains<IAnalyticsService>()) return;
+            var levelData = _levelController != null ? _levelController.LevelData : null;
+            if (levelData == null) return;
+
+            var p = extra ?? new Dictionary<string, object>();
+            p["levelId"] = levelData.LevelId;
+            if (includeSector) p["sectorId"] = ExtractSectorId(levelData.LevelId);
+
+            ServiceLocator.Get<IAnalyticsService>().TrackEvent(name, p);
+        }
+
+        static string ExtractSectorId(string levelId)
+        {
+            if (string.IsNullOrEmpty(levelId)) return string.Empty;
+            int idx = levelId.IndexOf("_level_", System.StringComparison.Ordinal);
+            return idx > 0 ? levelId.Substring(0, idx) : levelId;
         }
 
         void OnPauseClicked()
@@ -113,6 +156,7 @@ namespace StarFunc.UI
             if (_undoButton) _undoButton.onClick.RemoveListener(OnUndoClicked);
             if (_resetButton) _resetButton.onClick.RemoveListener(OnResetClicked);
             if (_pauseButton) _pauseButton.onClick.RemoveListener(OnPauseClicked);
+            if (_hintButton) _hintButton.onClick.RemoveListener(OnHintClicked);
         }
     }
 }

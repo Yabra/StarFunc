@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,6 +6,7 @@ using System.Threading.Tasks;
 using StarFunc.Core;
 using StarFunc.Data;
 using StarFunc.Infrastructure;
+using StarFunc.Meta;
 using UnityEngine;
 
 namespace StarFunc.Gameplay
@@ -60,6 +62,8 @@ namespace StarFunc.Gameplay
         LevelTimer _levelTimer;
         ILivesService _livesService;
         ReconciliationHandler _reconciliation;
+        IFeedbackService _feedback;
+        IAnalyticsService _analytics;
 
         public LevelState CurrentState => _currentState;
         public LevelData LevelData => _levelData;
@@ -107,6 +111,16 @@ namespace StarFunc.Gameplay
                 ? ServiceLocator.Get<ReconciliationHandler>()
                 : null;
 
+            // Resolve feedback service for SFX/VFX hooks (task 4.6).
+            _feedback = ServiceLocator.Contains<IFeedbackService>()
+                ? ServiceLocator.Get<IFeedbackService>()
+                : null;
+
+            // Resolve analytics for gameplay events (task 4.8).
+            _analytics = ServiceLocator.Contains<IAnalyticsService>()
+                ? ServiceLocator.Get<IAnalyticsService>()
+                : null;
+
             // Block entry when the player has no lives.
             if (_livesService != null && !_livesService.HasLives())
             {
@@ -144,6 +158,13 @@ namespace StarFunc.Gameplay
 
             // Raise level started event.
             if (_onLevelStarted) _onLevelStarted.Raise(data);
+
+            _analytics?.TrackEvent(AnalyticsEventNames.LevelStart, new Dictionary<string, object>
+            {
+                ["levelId"] = data.LevelId,
+                ["sectorId"] = ExtractSectorId(data.LevelId),
+                ["attempt"] = _attemptCount + 1
+            });
 
             Debug.Log($"[LevelController] Initialized level '{data.LevelId}': " +
                       $"{_solutionStars.Count} solution stars, taskType={data.TaskType}");
@@ -380,8 +401,10 @@ namespace StarFunc.Gameplay
         }
 
         /// <summary>
-        /// BuildFunction: type taken from <see cref="LevelData.ReferenceFunctions"/>[0].Type when
-        /// available; no reference graph is shown — control-point stars define the target curve.
+        /// BuildFunction: control-point stars define the target curve, no reference graph.
+        /// If <see cref="LevelData.AllowedFunctionTypes"/> has more than one entry, the
+        /// player picks the function family via <c>TypeSelector</c>; otherwise the type
+        /// is taken from <see cref="LevelData.ReferenceFunctions"/>[0].Type.
         /// </summary>
         void ShowBuildFunctionTask()
         {
@@ -389,7 +412,8 @@ namespace StarFunc.Gameplay
                 ? _levelData.ReferenceFunctions[0].Type
                 : FunctionType.Linear;
             Vector2 domain = new(_levelData.PlaneMin.x, _levelData.PlaneMax.x);
-            _answerSystem.SetupBuildFunction(type, domain, _levelData.MaxAdjustments);
+            _answerSystem.SetupBuildFunction(type, _levelData.AllowedFunctionTypes,
+                                             domain, _levelData.MaxAdjustments);
             ApplyInitialPartialReveal();
             Debug.Log($"[LevelController] ShowTask: BuildFunction mode ({type})");
             AwaitInput();
@@ -427,11 +451,8 @@ namespace StarFunc.Gameplay
 
         /// <summary>
         /// If the level has PartialReveal enabled, hide everything beyond the initial
-        /// segment count on the comparison overlay (the reference curve shown by
-        /// AdjustGraph). BuildFunction has no reference to clip — the call is harmless
-        /// (no-op when no overlay is drawn). Per-correct-action increments aren't wired
-        /// for these modes since "correct action" is ambiguous when the answer is a
-        /// single confirm; designers can drive further reveals via custom hooks.
+        /// segment count on the comparison overlay (AdjustGraph). BuildFunction has no
+        /// reference to clip — the call is a harmless no-op there.
         /// </summary>
         void ApplyInitialPartialReveal()
         {
@@ -661,6 +682,8 @@ namespace StarFunc.Gameplay
 
         IEnumerator PlayPlaceAndAdvance(StarEntity entity, StarConfig config)
         {
+            _feedback?.PlayFeedback(FeedbackType.StarPlaced, entity.transform.position);
+
             yield return entity.PlayPlace();
 
             // Raise star collected event.
@@ -714,6 +737,7 @@ namespace StarFunc.Gameplay
         IEnumerator PlayErrorAndResume(StarEntity entity, StarConfig config)
         {
             entity.SetState(StarState.Incorrect);
+            _feedback?.PlayFeedback(FeedbackType.StarError, entity.transform.position);
             yield return entity.PlayError();
             entity.SetState(StarState.Active);
 
@@ -762,6 +786,14 @@ namespace StarFunc.Gameplay
 
             Debug.Log($"[LevelController] Level failed: {failReason}");
 
+            _analytics?.TrackEvent(AnalyticsEventNames.LevelFail, new Dictionary<string, object>
+            {
+                ["levelId"] = _levelData.LevelId,
+                ["sectorId"] = ExtractSectorId(_levelData.LevelId),
+                ["reason"] = failReason ?? string.Empty,
+                ["attempt"] = _attemptCount
+            });
+
             if (_onLevelCompleted) _onLevelCompleted.Raise(localResult);
             if (_onLevelFailed) _onLevelFailed.Raise();
             SetState(LevelState.Failed);
@@ -787,12 +819,46 @@ namespace StarFunc.Gameplay
                       $"{localResult.ErrorCount} errors, {localResult.FragmentsEarned} fragments" +
                       (localResult.ImprovementBonus > 0 ? $" (+{localResult.ImprovementBonus} improvement)" : ""));
 
-            // Show local result immediately for instant feedback.
-            ShowResult(localResult);
+            // Level-complete celebration VFX/SFX. Spawn at the plane origin so
+            // the burst centres on the play area regardless of camera setup.
+            if (localResult.IsValid)
+            {
+                Vector3 origin = _plane != null ? _plane.transform.position : Vector3.zero;
+                _feedback?.PlayFeedback(FeedbackType.LevelComplete, origin);
+
+                _analytics?.TrackEvent(AnalyticsEventNames.LevelComplete, new Dictionary<string, object>
+                {
+                    ["levelId"] = _levelData.LevelId,
+                    ["sectorId"] = ExtractSectorId(_levelData.LevelId),
+                    ["stars"] = localResult.Stars,
+                    ["time"] = localResult.Time,
+                    ["errors"] = localResult.ErrorCount,
+                    ["attempt"] = _attemptCount + 1
+                });
+            }
+
+            // For Final and RestoreConstellation levels, play the constellation
+            // animation before transitioning to the result screen.
+            bool playConstellation = _levelData.Type == LevelType.Final
+                                     || _levelData.TaskType == TaskType.RestoreConstellation;
+            if (playConstellation && _starManager != null && _solutionStars != null && _solutionStars.Count > 0)
+            {
+                StartCoroutine(PlayConstellationThenShowResult(localResult));
+            }
+            else
+            {
+                ShowResult(localResult);
+            }
 
             // Fire reconciliation in the background — server result is authoritative.
             if (_reconciliation != null)
                 _ = ReconcileAsync(localResult);
+        }
+
+        IEnumerator PlayConstellationThenShowResult(LevelResult localResult)
+        {
+            yield return _starManager.PlayConstellationRestore(_solutionStars);
+            ShowResult(localResult);
         }
 
         /// <summary>
@@ -874,6 +940,17 @@ namespace StarFunc.Gameplay
                 State = state,
                 IsControlPoint = config.IsControlPoint
             });
+        }
+
+        /// <summary>
+        /// "sector_3_level_07" → "sector_3". Used to attach a sectorId to
+        /// per-level analytics events without an extra LevelData lookup.
+        /// </summary>
+        static string ExtractSectorId(string levelId)
+        {
+            if (string.IsNullOrEmpty(levelId)) return string.Empty;
+            int idx = levelId.IndexOf("_level_", StringComparison.Ordinal);
+            return idx > 0 ? levelId.Substring(0, idx) : levelId;
         }
     }
 }

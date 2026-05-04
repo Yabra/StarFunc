@@ -34,6 +34,7 @@ namespace StarFunc.Infrastructure
 
                 // Union
                 OwnedItems = UnionItems(local.OwnedItems, server.OwnedItems),
+                SeenContent = UnionItems(local.SeenContent, server.SeenContent),
 
                 // Statistics — take max
                 TotalLevelsCompleted = Math.Max(local.TotalLevelsCompleted, server.TotalLevelsCompleted),

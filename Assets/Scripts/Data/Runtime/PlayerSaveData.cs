@@ -29,6 +29,11 @@ namespace StarFunc.Data
         // Consumables
         public Dictionary<string, int> Consumables = new();
 
+        // Notifications — content IDs the player has acknowledged (e.g.,
+        // "sector_unlock:sector_2" once they've tapped the sector). Anything
+        // unlocked but not in this list shows a badge in the hub.
+        public List<string> SeenContent = new();
+
         // Statistics
         public int TotalLevelsCompleted;
         public int TotalStarsCollected;

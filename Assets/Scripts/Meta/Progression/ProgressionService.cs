@@ -228,6 +228,18 @@ namespace StarFunc.Meta
 
             _economyService.SpendFragments(_balanceConfig.SkipLevelCostFragments);
 
+            if (ServiceLocator.Contains<IAnalyticsService>())
+            {
+                ServiceLocator.Get<IAnalyticsService>().TrackEvent(
+                    AnalyticsEventNames.LevelSkip,
+                    new Dictionary<string, object>
+                    {
+                        ["levelId"] = levelId,
+                        ["sectorId"] = sector != null ? sector.SectorId : string.Empty,
+                        ["cost"] = _balanceConfig.SkipLevelCostFragments
+                    });
+            }
+
             var progress = GetOrCreateLevelProgress(levelId);
             bool isFirstCompletion = !progress.IsCompleted;
             int previousBestStars = progress.BestStars;
@@ -286,6 +298,16 @@ namespace StarFunc.Meta
                 var sp = GetOrCreateSectorProgress(sector.SectorId);
                 sp.State = SectorState.Available;
                 _onSectorUnlocked?.Raise(sector);
+
+                if (ServiceLocator.Contains<IAnalyticsService>())
+                {
+                    ServiceLocator.Get<IAnalyticsService>().TrackEvent(
+                        AnalyticsEventNames.SectorUnlock,
+                        new Dictionary<string, object>
+                        {
+                            ["sectorId"] = sector.SectorId
+                        });
+                }
             }
         }
 

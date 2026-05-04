@@ -104,7 +104,30 @@
       "timerAffectsRating": false,
       "threeStarMaxTime": 0
     },
-    "fragmentReward": 5
+    "fragmentReward": 5,
+    "tutorial": {
+      "showHints": true,
+      "hints": [
+        {
+          "trigger": "OnLevelStart",
+          "hintText": "Синусоида — это волнообразная кривая, повторяющаяся периодически.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        },
+        {
+          "trigger": "OnFirstInteraction",
+          "hintText": "Прочитай координату звезды на волне.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        }
+      ]
+    }
   },
   {
     "levelId": "sector_4_level_01",
@@ -223,7 +246,30 @@
       "timerAffectsRating": false,
       "threeStarMaxTime": 0
     },
-    "fragmentReward": 10
+    "fragmentReward": 10,
+    "tutorial": {
+      "showHints": true,
+      "hints": [
+        {
+          "trigger": "OnLevelStart",
+          "hintText": "Синусоида повторяется через равные промежутки — это её период.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        },
+        {
+          "trigger": "AfterErrors",
+          "hintText": "Найди точку, лежащую на волне в правильной фазе.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 1
+        }
+      ]
+    }
   },
   {
     "levelId": "sector_4_level_02",

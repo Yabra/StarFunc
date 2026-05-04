@@ -15,22 +15,72 @@ MonoBehaviour:
   LevelId: sector_4_level_10
   LevelIndex: 10
   Type: 1
-  PlaneMin: {x: 0, y: 0}
-  PlaneMax: {x: 0, y: 0}
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 5}
   GridStep: 1
-  Stars: []
-  TaskType: 0
-  ReferenceFunctions: []
-  AnswerOptions: []
-  AccuracyThreshold: 0
+  Stars:
+  - StarId: s4_l10_star_1
+    Coordinate: {x: -4, y: -1.3}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l10_star_2
+    Coordinate: {x: -2, y: -0.8}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l10_star_3
+    Coordinate: {x: 0, y: 2}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s4_l10_star_4
+    Coordinate: {x: 2, y: -0.8}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  TaskType: 1
+  ReferenceFunctions:
+  - {fileID: 11400000, guid: 9f2c8e3108ebe28c2b17ca638d7bf4e6, type: 2}
+  AnswerOptions:
+  - OptionId: opt_1
+    Text: y = 2cos(x)
+    Value: 0
+    IsCorrect: 1
+    Function: {fileID: 0}
+  - OptionId: opt_2
+    Text: y = 3cos(x)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_3
+    Text: y = 2cos(x) + 1
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_4
+    Text: y = 2cos(2x)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
-    TwoStarMaxErrors: 0
-    OneStarMaxErrors: 0
+    TwoStarMaxErrors: 1
+    OneStarMaxErrors: 3
     TimerAffectsRating: 0
     ThreeStarMaxTime: 0
   MaxAttempts: 0
   MaxAdjustments: 0
+  AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0
   GraphVisibility:
@@ -39,4 +89,4 @@ MonoBehaviour:
     RevealPerCorrectAction: 0
   ShowHints: 0
   Hints: []
-  FragmentReward: 0
+  FragmentReward: 10

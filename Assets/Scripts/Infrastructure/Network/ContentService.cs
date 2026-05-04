@@ -263,6 +263,19 @@ namespace StarFunc.Infrastructure
             return true;
         }
 
+        /// <summary>
+        /// Force a re-fetch + cache write of <c>/shop/items</c> and reload the
+        /// in-memory <see cref="ShopCatalog"/>. Called by <c>HybridShopService</c>
+        /// after a server purchase or on reconnect, since catalog prices may
+        /// have shifted (API.md §6.5).
+        /// </summary>
+        public async Task RefreshShopCatalogAsync()
+        {
+            if (!_networkMonitor.IsOnline) return;
+            if (await UpdateShopCatalog())
+                LoadShopCatalog();
+        }
+
         async Task<bool> UpdateShopCatalog()
         {
             string etag = GetETag(ApiEndpoints.ShopItems);
@@ -341,11 +354,22 @@ namespace StarFunc.Infrastructure
 
         void ApplyBalanceToConfig()
         {
-            if (_balance == null) return;
+            if (_balance == null || _balanceConfig == null) return;
 
-            _balanceConfig.MaxLives = _balance.LivesConfig.MaxLives;
-            _balanceConfig.RestoreIntervalSeconds = _balance.LivesConfig.RestoreIntervalSeconds;
-            _balanceConfig.RestoreCostFragments = _balance.LivesConfig.RestoreCostFragments;
+            // LivesConfig is a nested object on the server / bundled JSON.
+            // Guard against a malformed payload that omits the section so boot
+            // continues with the SO defaults rather than hitting an NRE.
+            if (_balance.LivesConfig != null)
+            {
+                _balanceConfig.MaxLives = _balance.LivesConfig.MaxLives;
+                _balanceConfig.RestoreIntervalSeconds = _balance.LivesConfig.RestoreIntervalSeconds;
+                _balanceConfig.RestoreCostFragments = _balance.LivesConfig.RestoreCostFragments;
+            }
+            else
+            {
+                Debug.LogWarning("[ContentService] Balance payload missing 'livesConfig' — keeping SO defaults.");
+            }
+
             _balanceConfig.SkipLevelCostFragments = _balance.SkipLevelCostFragments;
             _balanceConfig.ImprovementBonusPerStar = _balance.ImprovementBonusPerStar;
             _balanceConfig.HintCostFragments = _balance.HintCostFragments;

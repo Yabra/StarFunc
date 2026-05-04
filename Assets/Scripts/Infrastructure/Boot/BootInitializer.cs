@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using StarFunc.Core;
 using StarFunc.Data;
 using StarFunc.Meta;
@@ -7,8 +8,12 @@ namespace StarFunc.Infrastructure
 {
     public class BootInitializer : MonoBehaviour
     {
+        const float MinBootDurationSeconds = 3f;
+
         [Header("Config")]
         [SerializeField] BalanceConfig _balanceConfig;
+        [SerializeField] AudioConfig _audioConfig;
+        [SerializeField] VfxConfig _vfxConfig;
         [SerializeField] SectorData[] _sectors;
 
         [Header("Events — Economy")]
@@ -31,6 +36,17 @@ namespace StarFunc.Infrastructure
 
         async void Start()
         {
+            float bootStartedAt = Time.realtimeSinceStartup;
+
+            // LoadingOverlay registers itself on Awake; show it now so the
+            // Boot scene has visible UI throughout the async setup. Progress
+            // is driven at each milestone below.
+            var overlay = ServiceLocator.Contains<ILoadingOverlay>()
+                ? ServiceLocator.Get<ILoadingOverlay>()
+                : null;
+            overlay?.Show();
+            overlay?.SetProgress(0.05f);
+
             // §10.5 step 1 — NetworkMonitor
             var networkObject = new GameObject("[NetworkMonitor]");
             DontDestroyOnLoad(networkObject);
@@ -47,6 +63,7 @@ namespace StarFunc.Infrastructure
             ServiceLocator.Register(authService);
 
             await authService.InitializeAsync();
+            overlay?.SetProgress(0.2f);
 
             // §10.5 step 3 — SaveService
             var saveService = new LocalSaveService();
@@ -67,6 +84,7 @@ namespace StarFunc.Infrastructure
             var contentService = new ContentService(apiClient, networkMonitor, _balanceConfig);
             ServiceLocator.Register(contentService);
             await contentService.InitializeAsync();
+            overlay?.SetProgress(0.6f);
 
             // §10.5 step 4 — EconomyService (needed before ProgressionService)
             var economyService = new LocalEconomyService(
@@ -88,13 +106,59 @@ namespace StarFunc.Infrastructure
             var timerService = new TimerService();
             ServiceLocator.Register<ITimerService>(timerService);
 
-            // §10.5 step 8 — FeedbackService
-            var feedbackService = new FeedbackService();
+            // §10.5 step 7b — AudioService (Music + SFX, DontDestroyOnLoad host)
+            var audioObj = new GameObject("[AudioSystem]");
+            DontDestroyOnLoad(audioObj);
+            var musicPlayer = audioObj.AddComponent<MusicPlayer>();
+            var sfxPlayer = audioObj.AddComponent<SFXPlayer>();
+            var audioService = new AudioService(musicPlayer, sfxPlayer);
+            ServiceLocator.Register<IAudioService>(audioService);
+
+            // §10.5 step 8 — FeedbackService (uses AudioService + AudioConfig for SFX,
+            // VfxConfig for ParticleSystem one-shots — task 4.6)
+            var feedbackService = new FeedbackService(audioService, _audioConfig, _vfxConfig);
             ServiceLocator.Register<IFeedbackService>(feedbackService);
+
+            // §10.5 step 9 — NotificationService (hub badges)
+            var notificationService = new NotificationService(
+                saveService, progressionService, _sectors,
+                _onSectorUnlocked, _onLivesChanged);
+            ServiceLocator.Register<INotificationService>(notificationService);
+
+            // §10.5 step 10 — ShopService: HybridShopService composes a local
+            // backing store with a REST surface (task 4.3a). Online purchases
+            // are server-authoritative; offline purchases run locally and
+            // queue with cachedPrice for SyncProcessor to flush on reconnect.
+            var localShopService = new LocalShopService(contentService, economyService, saveService);
+            var serverShopService = new ServerShopService(apiClient);
+            var shopService = new HybridShopService(
+                localShopService, serverShopService,
+                networkMonitor, contentService, syncQueue, economyService);
+            ServiceLocator.Register<IShopService>(shopService);
+            overlay?.SetProgress(0.85f);
+
+            // §10.5 step 11 — AnalyticsService (task 4.8 / 4.8a)
+            // REST sender + on-disk batching queue. Initialize() spawns the
+            // DontDestroyOnLoad host that drives the 30s flush cadence and
+            // emits session_start.
+            var analyticsSender = new AnalyticsSender(apiClient, networkMonitor);
+            var analyticsService = new AnalyticsService(analyticsSender, networkMonitor);
+            ServiceLocator.Register<IAnalyticsService>(analyticsService);
+            analyticsService.Initialize();
 
             // UIService registers itself via MonoBehaviour.Awake in the target scene
 
-            // Boot complete — load Hub
+            overlay?.SetProgress(1f);
+
+            // Hold the Boot scene visible for at least MinBootDurationSeconds
+            // so the splash isn't a single-frame flash on fast machines.
+            float elapsed = Time.realtimeSinceStartup - bootStartedAt;
+            float remaining = MinBootDurationSeconds - elapsed;
+            if (remaining > 0f)
+                await Task.Delay(Mathf.CeilToInt(remaining * 1000f));
+
+            // Boot complete — load Hub. SceneFlowManager handles the
+            // transition + overlay hide on the other side.
             var sfm = ServiceLocator.Get<SceneFlowManager>();
             sfm.LoadScene("Hub");
         }

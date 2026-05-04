@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: StarFunc.Data::StarFunc.Data.SectorData
   SectorId: sector_2
   DisplayName: "\u041B\u0438\u043D\u0435\u0439\u043D\u044B\u0435 \u043C\u0438\u0440\u044B"
-  SectorIndex: 2
+  SectorIndex: 1
   Levels:
   - {fileID: 11400000, guid: 665dd407a7c164ce4bde8950f7d1c8bd, type: 2}
   - {fileID: 11400000, guid: d850475c5947d091d89cc3bd07050e06, type: 2}
@@ -41,8 +41,8 @@ MonoBehaviour:
   ConstellationSprite: {fileID: 0}
   ConstellationRestoredSprite: {fileID: 0}
   SectorIcon: {fileID: 0}
-  AccentColor: {r: 0, g: 0, b: 0, a: 0}
-  StarColor: {r: 0, g: 0, b: 0, a: 0}
+  AccentColor: {r: 0.3, g: 0.6, b: 0.9, a: 1}
+  StarColor: {r: 1, g: 1, b: 1, a: 1}
   ConstellationStarAngles: []
   IntroCutscene: {fileID: 0}
   OutroCutscene: {fileID: 0}

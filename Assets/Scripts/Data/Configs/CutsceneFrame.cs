@@ -8,9 +8,8 @@ namespace StarFunc.Data
     {
         public Sprite Background;
         public Sprite CharacterSprite;
-        public GhostEmotion Emotion;
         [TextArea] public string Text;
         public float Duration;
-        public string FrameAnimation;
+        public CutsceneFrameAnimation Animation;
     }
 }

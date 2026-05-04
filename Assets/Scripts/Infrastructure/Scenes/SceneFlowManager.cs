@@ -8,6 +8,8 @@ namespace StarFunc.Infrastructure
 {
     public class SceneFlowManager : MonoBehaviour
     {
+        const float LoadingOverlayDelay = 0.25f;
+
         bool _isLevelLoaded;
 
         public LevelData CurrentLevel { get; private set; }
@@ -65,24 +67,41 @@ namespace StarFunc.Infrastructure
             System.Action onLoaded = null)
         {
             var overlay = GetOverlay();
-            overlay?.Show();
+            var transition = GetTransition();
+
+            yield return WaitForTransitionIn(transition);
+
+            overlay?.ShowDelayed(LoadingOverlayDelay);
 
             var op = SceneManager.LoadSceneAsync(sceneName, mode);
             while (!op.isDone)
+            {
+                overlay?.SetProgress(op.progress);
                 yield return null;
-
+            }
+            overlay?.SetProgress(1f);
             overlay?.Hide();
+
             onLoaded?.Invoke();
+
+            transition?.TransitionOut(null);
         }
 
         IEnumerator RetryLevelRoutine(LevelData level)
         {
             var overlay = GetOverlay();
-            overlay?.Show();
+            var transition = GetTransition();
+
+            yield return WaitForTransitionIn(transition);
+
+            overlay?.ShowDelayed(LoadingOverlayDelay);
 
             var unload = SceneManager.UnloadSceneAsync("Level");
             while (!unload.isDone)
+            {
+                overlay?.SetProgress(unload.progress * 0.5f);
                 yield return null;
+            }
 
             _isLevelLoaded = false;
             CurrentLevel = level;
@@ -90,34 +109,65 @@ namespace StarFunc.Infrastructure
 
             var load = SceneManager.LoadSceneAsync("Level", LoadSceneMode.Additive);
             while (!load.isDone)
+            {
+                overlay?.SetProgress(0.5f + load.progress * 0.5f);
                 yield return null;
+            }
 
             SetHubUIActive(false);
             _isLevelLoaded = true;
+            overlay?.SetProgress(1f);
             overlay?.Hide();
+
+            transition?.TransitionOut(null);
         }
 
         IEnumerator UnloadLevelRoutine()
         {
             var overlay = GetOverlay();
-            overlay?.Show();
+            var transition = GetTransition();
+
+            yield return WaitForTransitionIn(transition);
+
+            overlay?.ShowDelayed(LoadingOverlayDelay);
 
             var op = SceneManager.UnloadSceneAsync("Level");
             while (!op.isDone)
+            {
+                overlay?.SetProgress(op.progress);
                 yield return null;
+            }
 
             SetHubUIActive(true);
             _isLevelLoaded = false;
             CurrentLevel = null;
             LevelData.ActiveLevel = null;
 
+            overlay?.SetProgress(1f);
             overlay?.Hide();
+
+            transition?.TransitionOut(null);
+        }
+
+        static IEnumerator WaitForTransitionIn(ITransitionOverlay transition)
+        {
+            if (transition == null) yield break;
+            bool done = false;
+            transition.TransitionIn(() => done = true);
+            while (!done) yield return null;
         }
 
         static ILoadingOverlay GetOverlay()
         {
             return ServiceLocator.Contains<ILoadingOverlay>()
                 ? ServiceLocator.Get<ILoadingOverlay>()
+                : null;
+        }
+
+        static ITransitionOverlay GetTransition()
+        {
+            return ServiceLocator.Contains<ITransitionOverlay>()
+                ? ServiceLocator.Get<ITransitionOverlay>()
                 : null;
         }
 

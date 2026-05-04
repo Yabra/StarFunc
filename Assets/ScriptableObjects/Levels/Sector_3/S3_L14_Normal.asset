@@ -15,22 +15,72 @@ MonoBehaviour:
   LevelId: sector_3_level_14
   LevelIndex: 14
   Type: 1
-  PlaneMin: {x: 0, y: 0}
-  PlaneMax: {x: 0, y: 0}
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 10}
   GridStep: 1
-  Stars: []
-  TaskType: 0
-  ReferenceFunctions: []
-  AnswerOptions: []
-  AccuracyThreshold: 0
+  Stars:
+  - StarId: s3_l14_star_1
+    Coordinate: {x: -3, y: -6}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s3_l14_star_2
+    Coordinate: {x: -2, y: -1}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s3_l14_star_3
+    Coordinate: {x: -1, y: 2}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s3_l14_star_4
+    Coordinate: {x: 0, y: 3}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  TaskType: 1
+  ReferenceFunctions:
+  - {fileID: 11400000, guid: 3c44d28d2e885c7ddb49d1f55799847a, type: 2}
+  AnswerOptions:
+  - OptionId: opt_1
+    Text: "y = -x\xB2 + 3"
+    Value: 0
+    IsCorrect: 1
+    Function: {fileID: 0}
+  - OptionId: opt_2
+    Text: "y = 0x\xB2 + 3"
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_3
+    Text: "y = -x\xB2 + x + 3"
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_4
+    Text: "y = x\xB2 + 3"
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
-    TwoStarMaxErrors: 0
-    OneStarMaxErrors: 0
+    TwoStarMaxErrors: 1
+    OneStarMaxErrors: 3
     TimerAffectsRating: 0
     ThreeStarMaxTime: 0
   MaxAttempts: 0
   MaxAdjustments: 0
+  AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0
   GraphVisibility:
@@ -39,4 +89,4 @@ MonoBehaviour:
     RevealPerCorrectAction: 0
   ShowHints: 0
   Hints: []
-  FragmentReward: 0
+  FragmentReward: 10

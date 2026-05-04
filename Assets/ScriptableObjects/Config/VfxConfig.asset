@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d08e9c4e678bb2d40ac717466e3706a1, type: 3}
+  m_Name: VfxConfig
+  m_EditorClassIdentifier: StarFunc.Meta::StarFunc.Meta.VfxConfig
+  StarPlaced: {fileID: 8595019283371525647, guid: 66de80108e1b846f8af847fe9314392c, type: 3}
+  StarError: {fileID: 6265720184748443607, guid: 1a517603d0960f03aaca1b91f123c0eb, type: 3}
+  LevelComplete: {fileID: 1715859425437553921, guid: 1b3acb84a8b4649a492c0676dda1c205, type: 3}
+  ConstellationRestored: {fileID: 8451413722518369371, guid: 5c0b4c3419aad0ee08b6e4ba81a4eaf8, type: 3}
+  SectorUnlock: {fileID: 5249412840147301003, guid: 0dc17586c2aa454e18d9726001d66bab, type: 3}
+  ButtonTap: {fileID: 0}

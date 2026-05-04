@@ -4,6 +4,7 @@ Shader "StarFunc/SpriteAdditive"
     {
         _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,0.4)
+        _BlurStrength ("Blur Strength (texels)", Range(0,16)) = 4
     }
 
     SubShader
@@ -22,6 +23,14 @@ Shader "StarFunc/SpriteAdditive"
 
         Pass
         {
+            // URP 2D Renderer (Renderer2D.asset) only invokes passes tagged
+            // Universal2D for sprite materials. Without this tag the renderer
+            // silently falls back to its built-in sprite path and the
+            // additive blend defined above is ignored, so the material reads
+            // as a plain alpha-blended sprite. Keep UniversalForward for the
+            // forward renderer too, in case the project ever switches.
+            Tags { "LightMode" = "Universal2D" }
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -47,7 +56,9 @@ Shader "StarFunc/SpriteAdditive"
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
+            float4 _MainTex_TexelSize;
             half4 _Color;
+            float _BlurStrength;
 
             Varyings vert(Attributes i)
             {
@@ -63,8 +74,24 @@ Shader "StarFunc/SpriteAdditive"
 
             half4 frag(Varyings i) : SV_Target
             {
-                half4 tex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);
-                return tex * i.color;
+                // 9-tap Gaussian blur. Offset is measured in source texels so
+                // the blur is resolution-independent. Set _BlurStrength = 0 in
+                // the material to skip the blur and pay only one tap.
+                float2 offset = _MainTex_TexelSize.xy * _BlurStrength;
+                float2 uv = i.uv;
+
+                half4 col = 0;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2(-1,-1) * offset) * 0.0625;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2( 0,-1) * offset) * 0.125;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2( 1,-1) * offset) * 0.0625;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2(-1, 0) * offset) * 0.125;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv                          ) * 0.25;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2( 1, 0) * offset) * 0.125;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2(-1, 1) * offset) * 0.0625;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2( 0, 1) * offset) * 0.125;
+                col += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + float2( 1, 1) * offset) * 0.0625;
+
+                return col * i.color;
             }
             ENDHLSL
         }

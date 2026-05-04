@@ -15,22 +15,72 @@ MonoBehaviour:
   LevelId: sector_1_level_07
   LevelIndex: 7
   Type: 1
-  PlaneMin: {x: 0, y: 0}
-  PlaneMax: {x: 0, y: 0}
+  PlaneMin: {x: -5, y: -5}
+  PlaneMax: {x: 5, y: 5}
   GridStep: 1
-  Stars: []
+  Stars:
+  - StarId: s1_l07_star_1
+    Coordinate: {x: -3, y: -4}
+    InitialState: 1
+    IsControlPoint: 1
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s1_l07_star_2
+    Coordinate: {x: -2, y: -3}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s1_l07_star_3
+    Coordinate: {x: -1, y: -2}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
+  - StarId: s1_l07_star_4
+    Coordinate: {x: 0, y: -1}
+    InitialState: 1
+    IsControlPoint: 0
+    IsDistractor: 0
+    BelongsToSolution: 1
+    RevealAfterAction: -1
   TaskType: 0
-  ReferenceFunctions: []
-  AnswerOptions: []
-  AccuracyThreshold: 0
+  ReferenceFunctions:
+  - {fileID: 11400000, guid: d7da8fce478612fdb97c2670407344ce, type: 2}
+  AnswerOptions:
+  - OptionId: opt_1
+    Text: (1, 0)
+    Value: 0
+    IsCorrect: 1
+    Function: {fileID: 0}
+  - OptionId: opt_2
+    Text: (1, 1)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_3
+    Text: (2, 0)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  - OptionId: opt_4
+    Text: (1, -1)
+    Value: 0
+    IsCorrect: 0
+    Function: {fileID: 0}
+  AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
-    TwoStarMaxErrors: 0
-    OneStarMaxErrors: 0
+    TwoStarMaxErrors: 1
+    OneStarMaxErrors: 3
     TimerAffectsRating: 0
     ThreeStarMaxTime: 0
   MaxAttempts: 0
   MaxAdjustments: 0
+  AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0
   GraphVisibility:
@@ -39,4 +89,4 @@ MonoBehaviour:
     RevealPerCorrectAction: 0
   ShowHints: 0
   Hints: []
-  FragmentReward: 0
+  FragmentReward: 10

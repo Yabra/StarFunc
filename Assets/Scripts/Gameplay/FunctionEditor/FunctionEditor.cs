@@ -69,6 +69,23 @@ namespace StarFunc.Gameplay
                 if (row) row.SetInteractable(true);
         }
 
+        /// <summary>
+        /// Switch to a different function type while preserving the adjustment
+        /// counter and MaxAdjustments. Coefficients reset to zeros (counts
+        /// differ per type). Used by <c>TypeSelector</c> in BuildFunction mode.
+        /// </summary>
+        public void SwitchType(FunctionType newType)
+        {
+            if (newType == _currentType) return;
+
+            int expected = CoefficientCountFor(newType);
+            _currentType = newType;
+            _coefficients = new float[expected];
+
+            BuildSliders();
+            RaiseChanged();
+        }
+
         /// <summary>Disable/enable slider interaction without touching the counter.</summary>
         public void SetActive(bool active)
         {

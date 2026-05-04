@@ -8,6 +8,7 @@ namespace StarFunc.UI
         void HideScreen<T>() where T : UIScreen;
         T GetScreen<T>() where T : UIScreen;
         void ShowPopup<T>(PopupData data) where T : UIPopup;
+        T GetPopup<T>() where T : UIPopup;
         void HideAllPopups();
     }
 }

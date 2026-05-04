@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using StarFunc.Data;
 using TMPro;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace StarFunc.UI
 {
     public class SectorNodeWidget : MonoBehaviour
     {
+        const float BadgeAppearDuration = 0.35f;
         [Header("Visual")]
         [SerializeField] Image _sectorIcon;
         [SerializeField] Image _stateRing;
@@ -22,6 +24,7 @@ namespace StarFunc.UI
 
         SectorData _sectorData;
         SectorState _state;
+        Tween _badgeTween;
 
         public event Action<SectorData> OnClicked;
         public SectorData SectorData => _sectorData;
@@ -86,9 +89,45 @@ namespace StarFunc.UI
                 };
             }
 
-            // Notification badge — stub for Phase 3
+            // Default: no badge until SetBadge() is called by the hub.
             if (_notificationBadge)
                 _notificationBadge.SetActive(false);
+        }
+
+        /// <summary>
+        /// Show or hide the red-dot notification badge. Pop-in animation uses
+        /// DOTween scale (0 → 1, OutBack); hide is instant.
+        /// </summary>
+        public void SetBadge(bool show)
+        {
+            if (_notificationBadge == null) return;
+
+            KillBadgeTween();
+
+            if (show)
+            {
+                bool wasVisible = _notificationBadge.activeSelf;
+                _notificationBadge.SetActive(true);
+
+                if (!wasVisible)
+                {
+                    var t = _notificationBadge.transform;
+                    t.localScale = Vector3.zero;
+                    _badgeTween = t.DOScale(1f, BadgeAppearDuration).SetEase(Ease.OutBack);
+                }
+            }
+            else
+            {
+                _notificationBadge.transform.localScale = Vector3.one;
+                _notificationBadge.SetActive(false);
+            }
+        }
+
+        void KillBadgeTween()
+        {
+            if (_badgeTween != null && _badgeTween.IsActive())
+                _badgeTween.Kill();
+            _badgeTween = null;
         }
 
         public void SetConnectionLineColor(Color color)
@@ -105,6 +144,7 @@ namespace StarFunc.UI
 
         void OnDestroy()
         {
+            KillBadgeTween();
             if (_button)
                 _button.onClick.RemoveListener(HandleClick);
         }

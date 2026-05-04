@@ -78,6 +78,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: StarFunc.UI::StarFunc.UI.LivesDisplay
   _livesText: {fileID: 6344303114360405420}
+  _notificationBadge: {fileID: 0}
 --- !u!1 &1964546111094074833
 GameObject:
   m_ObjectHideFlags: 0
@@ -145,8 +146,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 6
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 1baf5654dd1935d45809f8c6403daed1, type: 2}
+  m_sharedMaterial: {fileID: -6688649148889291683, guid: 1baf5654dd1935d45809f8c6403daed1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

@@ -6,6 +6,7 @@
         "StarFunc.Data",
         "StarFunc.Infrastructure",
         "StarFunc.Input",
+        "StarFunc.Meta",
         "Unity.TextMeshPro",
         "Unity.InputSystem"
     ],

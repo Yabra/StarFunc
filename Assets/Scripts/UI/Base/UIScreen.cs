@@ -4,7 +4,7 @@ namespace StarFunc.UI
 {
     public abstract class UIScreen : MonoBehaviour
     {
-        [SerializeField] CanvasGroup _canvasGroup;
+        [SerializeField] protected CanvasGroup _canvasGroup;
 
         public bool IsVisible => gameObject.activeSelf;
 

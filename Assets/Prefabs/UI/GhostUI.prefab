@@ -25,9 +25,9 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 503600052597064850}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 1.21, y: 1.21, z: 1.21}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5509123852316299119}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -85,8 +85,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 0.5382531, g: 0.93677163, b: 0.38268006, a: 1}
+  m_Sprite: {fileID: 21300000, guid: bad7abd627deabc9bb0ec2935c6cad8c, type: 3}
+  m_Color: {r: 0.8740346, g: 0.93373644, b: 0.97678995, a: 0.16470589}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -199,8 +199,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: StarFunc.Gameplay::StarFunc.Gameplay.GhostEmotionController
   _ghostEntity: {fileID: 1210842913557864619}
-  _onStarCollected: {fileID: 0}
-  _onStarRejected: {fileID: 0}
+  _onStarCollected: {fileID: 11400000, guid: 9b74069718fa3c1d895d09350aff96a6, type: 2}
+  _onStarRejected: {fileID: 11400000, guid: d0c9cf38fbacb98d7899edd7376fca36, type: 2}
   _onLevelCompleted: {fileID: 0}
   _emotionDuration: 3
 --- !u!114 &2209541226176963499
@@ -266,7 +266,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: bad7abd627deabc9bb0ec2935c6cad8c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

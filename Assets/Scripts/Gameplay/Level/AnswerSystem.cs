@@ -22,6 +22,7 @@ namespace StarFunc.Gameplay
         [Header("Graph (ChooseFunction / AdjustGraph / BuildFunction)")]
         [SerializeField] GraphRenderer _graphRenderer;
         [SerializeField] FunctionEditor _functionEditor;
+        [SerializeField] TypeSelector _typeSelector;
 
         [Header("Stars (IdentifyError / RestoreConstellation)")]
         [SerializeField] StarManager _starManager;
@@ -73,6 +74,7 @@ namespace StarFunc.Gameplay
             _isActive = true;
 
             if (_functionEditor) _functionEditor.gameObject.SetActive(false);
+            if (_typeSelector) _typeSelector.gameObject.SetActive(false);
 
             OnOptionsChanged?.Invoke(options, taskType);
             Debug.Log($"[AnswerSystem] Setup: {options.Length} options, taskType={taskType}");
@@ -96,6 +98,8 @@ namespace StarFunc.Gameplay
             _currentTaskType = TaskType.AdjustGraph;
             _selectedIndex = -1;
             _isActive = true;
+
+            if (_typeSelector) _typeSelector.gameObject.SetActive(false);
 
             // Player starts at zeros so the editor isn't already at the answer.
             int n = FunctionEditor.CoefficientCountFor(reference.Type);
@@ -130,12 +134,14 @@ namespace StarFunc.Gameplay
         /// <summary>
         /// Configure the answer system for BuildFunction. Same editor flow as
         /// AdjustGraph but no reference graph is shown — the player builds the
-        /// function from scratch using control-point stars as guidance. The
-        /// function type is dictated by <paramref name="type"/> (currently
-        /// taken from <see cref="LevelData.ReferenceFunctions"/>[0].Type by
-        /// the caller).
+        /// function from scratch using control-point stars as guidance.
+        /// If <paramref name="allowedTypes"/> has more than one entry, a
+        /// <see cref="TypeSelector"/> button row is shown so the player can
+        /// pick the function family. Otherwise the type is fixed to
+        /// <paramref name="type"/>.
         /// </summary>
-        public void SetupBuildFunction(FunctionType type, Vector2 domainRange, int maxAdjustments)
+        public void SetupBuildFunction(FunctionType type, FunctionType[] allowedTypes,
+                                       Vector2 domainRange, int maxAdjustments)
         {
             DetachModeListeners();
             _currentOptions = null;
@@ -143,7 +149,24 @@ namespace StarFunc.Gameplay
             _selectedIndex = -1;
             _isActive = true;
 
-            int n = FunctionEditor.CoefficientCountFor(type);
+            FunctionType startType = type;
+            bool showSelector = _typeSelector && allowedTypes != null && allowedTypes.Length > 1;
+            if (_typeSelector)
+            {
+                _typeSelector.OnTypeChanged -= OnTypeSelectorChanged;
+                if (showSelector)
+                {
+                    _typeSelector.gameObject.SetActive(true);
+                    startType = _typeSelector.Setup(allowedTypes, type);
+                    _typeSelector.OnTypeChanged += OnTypeSelectorChanged;
+                }
+                else
+                {
+                    _typeSelector.gameObject.SetActive(false);
+                }
+            }
+
+            int n = FunctionEditor.CoefficientCountFor(startType);
             var initial = new float[n];
 
             if (_functionEditor)
@@ -151,7 +174,7 @@ namespace StarFunc.Gameplay
                 _functionEditor.gameObject.SetActive(true);
                 _functionEditor.OnFunctionChanged -= OnEditorFunctionChanged;
                 _functionEditor.OnFunctionChanged += OnEditorFunctionChanged;
-                _functionEditor.Setup(type, initial, domainRange, maxAdjustments);
+                _functionEditor.Setup(startType, initial, domainRange, maxAdjustments);
             }
             else
             {
@@ -167,7 +190,16 @@ namespace StarFunc.Gameplay
             _functionAnswerReady = true;
 
             OnOptionsChanged?.Invoke(System.Array.Empty<AnswerOption>(), TaskType.BuildFunction);
-            Debug.Log($"[AnswerSystem] SetupBuildFunction: type={type}, maxAdjustments={maxAdjustments}");
+            Debug.Log($"[AnswerSystem] SetupBuildFunction: type={startType}, " +
+                      $"allowed={(allowedTypes == null ? 0 : allowedTypes.Length)}, " +
+                      $"maxAdjustments={maxAdjustments}");
+        }
+
+        void OnTypeSelectorChanged(FunctionType newType)
+        {
+            if (_currentTaskType != TaskType.BuildFunction || _functionEditor == null) return;
+            _functionEditor.SwitchType(newType);
+            Debug.Log($"[AnswerSystem] BuildFunction: player switched type → {newType}");
         }
 
         /// <summary>
@@ -185,6 +217,7 @@ namespace StarFunc.Gameplay
             _isActive = true;
 
             if (_functionEditor) _functionEditor.gameObject.SetActive(false);
+            if (_typeSelector) _typeSelector.gameObject.SetActive(false);
 
             _identifyStars = tappableStars ?? Array.Empty<StarEntity>();
             _selectedStarIds.Clear();
@@ -216,6 +249,7 @@ namespace StarFunc.Gameplay
             _isActive = true;
 
             if (_functionEditor) _functionEditor.gameObject.SetActive(false);
+            if (_typeSelector) _typeSelector.gameObject.SetActive(false);
 
             _restoreTarget = target;
             _restoreThreshold = threshold;
@@ -293,6 +327,8 @@ namespace StarFunc.Gameplay
 
             if (_starManager) _starManager.OnPlaneTapped -= HandleRestorePlaneTapped;
             _restoreActive = false;
+
+            if (_typeSelector) _typeSelector.OnTypeChanged -= OnTypeSelectorChanged;
         }
 
         void OnEditorFunctionChanged(FunctionParams paramsArg)

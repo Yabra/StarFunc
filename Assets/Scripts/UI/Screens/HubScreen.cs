@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using StarFunc.Core;
 using StarFunc.Data;
 using StarFunc.Meta;
@@ -30,10 +31,20 @@ namespace StarFunc.UI
         [SerializeField] GameEvent<SectorData> _onSectorUnlocked;
         [SerializeField] GameEvent<SectorData> _onSectorCompleted;
 
+        const string IntroShownPrefix = "CutsceneIntroShown:";
+        const string OutroShownPrefix = "CutsceneOutroShown:";
+
         IProgressionService _progression;
         IEconomyService _economy;
         ILivesService _lives;
         IUIService _uiService;
+        INotificationService _notifications;
+
+        // Outro cutscenes are queued here when _onSectorCompleted fires
+        // (often during play in the Level scene); we drain the queue on the
+        // next HubScreen.Show so the cutscene appears once the player is back
+        // looking at the Hub.
+        readonly Queue<SectorData> _pendingOutros = new();
 
         void Start()
         {
@@ -65,6 +76,19 @@ namespace StarFunc.UI
             _economy = ServiceLocator.Get<IEconomyService>();
             _lives = ServiceLocator.Get<ILivesService>();
             _uiService = ServiceLocator.Get<IUIService>();
+
+            if (ServiceLocator.Contains<INotificationService>())
+            {
+                _notifications = ServiceLocator.Get<INotificationService>();
+                _notifications.OnChanged += OnNotificationsChanged;
+            }
+        }
+
+        void OnNotificationsChanged()
+        {
+            // Rebuild sector badges + the lives badge.
+            RefreshSectorNodes();
+            RefreshTopBar();
         }
 
         void BindSectorNodes()
@@ -88,6 +112,7 @@ namespace StarFunc.UI
         {
             base.Show();
             RefreshAll();
+            DrainPendingOutros();
         }
 
         void RefreshAll()
@@ -114,6 +139,10 @@ namespace StarFunc.UI
                     ? new Color(1f, 1f, 1f, 0.15f)
                     : sector.AccentColor;
                 _sectorNodes[i].SetConnectionLineColor(lineColor);
+
+                bool showBadge = _notifications != null
+                                 && _notifications.HasNewContent(sector.SectorId);
+                _sectorNodes[i].SetBadge(showBadge);
             }
         }
 
@@ -126,7 +155,12 @@ namespace StarFunc.UI
                 _fragmentsDisplay.SetFragments(_economy.GetFragments());
 
             if (_livesDisplay)
+            {
                 _livesDisplay.SetLives(_lives.GetCurrentLives());
+
+                bool livesBadge = _notifications != null && _notifications.HasUnclaimedRewards();
+                _livesDisplay.SetBadge(livesBadge);
+            }
         }
 
         void UpdateGhostPosition()
@@ -160,6 +194,48 @@ namespace StarFunc.UI
 
         void OnSectorClicked(SectorData sector)
         {
+            _notifications?.MarkSeen(INotificationService.SectorUnlockId(sector.SectorId));
+            // Player is starting a level — they've implicitly acknowledged the
+            // "lives are full again" notification.
+            _notifications?.MarkSeen(INotificationService.LivesRefilledId);
+
+            // Intro cutscene only on the very first time the player taps into
+            // a sector. We use a PlayerPrefs flag so the intro doesn't replay
+            // if the player closes the SectorScreen and taps the same sector
+            // again on the same save.
+            if (sector.IntroCutscene != null && !HasIntroBeenShown(sector.SectorId))
+            {
+                MarkIntroShown(sector.SectorId);
+                ShowCutscene(sector.IntroCutscene, () => OpenSectorScreen(sector));
+                return;
+            }
+
+            OpenSectorScreen(sector);
+        }
+
+        void OnSectorStateChanged(SectorData sector)
+        {
+            RefreshAll();
+
+            // The completion event can fire mid-Level (ProgressionService runs
+            // there). Queue the outro so DrainPendingOutros picks it up the
+            // next time the player is looking at the Hub.
+            if (sector != null
+                && sector.OutroCutscene != null
+                && _progression != null
+                && _progression.IsSectorCompleted(sector.SectorId)
+                && !HasOutroBeenShown(sector.SectorId))
+            {
+                _pendingOutros.Enqueue(sector);
+            }
+        }
+
+        // =========================================================================
+        // Cutscene plumbing
+        // =========================================================================
+
+        void OpenSectorScreen(SectorData sector)
+        {
             _uiService.ShowScreen<SectorScreen>();
 
             var sectorScreen = _uiService.GetScreen<SectorScreen>();
@@ -167,19 +243,65 @@ namespace StarFunc.UI
                 sectorScreen.SetSector(sector);
         }
 
-        void OnSectorStateChanged(SectorData _)
+        void DrainPendingOutros()
         {
-            RefreshAll();
+            if (_pendingOutros.Count == 0) return;
+
+            var sector = _pendingOutros.Dequeue();
+            if (sector == null || sector.OutroCutscene == null) return;
+            if (HasOutroBeenShown(sector.SectorId)) return;
+
+            MarkOutroShown(sector.SectorId);
+            // Onwards: keep draining sequentially after the cutscene closes,
+            // in case multiple sectors were completed back-to-back.
+            ShowCutscene(sector.OutroCutscene, DrainPendingOutros);
+        }
+
+        void ShowCutscene(CutsceneData data, System.Action onComplete)
+        {
+            if (_uiService == null || data == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            var popup = _uiService.GetPopup<CutscenePopup>();
+            if (popup == null)
+            {
+                Debug.LogWarning($"[HubScreen] CutscenePopup not found; skipping '{data.CutsceneId}'.");
+                onComplete?.Invoke();
+                return;
+            }
+
+            popup.Show(data, onComplete);
+        }
+
+        static bool HasIntroBeenShown(string sectorId) =>
+            PlayerPrefs.GetInt(IntroShownPrefix + sectorId, 0) == 1;
+
+        static void MarkIntroShown(string sectorId)
+        {
+            PlayerPrefs.SetInt(IntroShownPrefix + sectorId, 1);
+            PlayerPrefs.Save();
+        }
+
+        static bool HasOutroBeenShown(string sectorId) =>
+            PlayerPrefs.GetInt(OutroShownPrefix + sectorId, 0) == 1;
+
+        static void MarkOutroShown(string sectorId)
+        {
+            PlayerPrefs.SetInt(OutroShownPrefix + sectorId, 1);
+            PlayerPrefs.Save();
         }
 
         void OnShopClicked()
         {
-            // Stub — ShopScreen will be implemented in Phase 3
+            _uiService?.ShowScreen<ShopScreen>();
         }
 
         void OnSettingsClicked()
         {
-            // Stub — SettingsScreen will be implemented in Phase 3
+            _uiService?.ShowPopup<SettingsPopup>(null);
         }
 
         void OnDestroy()
@@ -197,6 +319,9 @@ namespace StarFunc.UI
                 _shopButton.onClick.RemoveAllListeners();
             if (_settingsButton)
                 _settingsButton.onClick.RemoveAllListeners();
+
+            if (_notifications != null)
+                _notifications.OnChanged -= OnNotificationsChanged;
         }
     }
 }

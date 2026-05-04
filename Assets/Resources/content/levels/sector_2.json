@@ -102,7 +102,30 @@
       "timerAffectsRating": false,
       "threeStarMaxTime": 0
     },
-    "fragmentReward": 5
+    "fragmentReward": 5,
+    "tutorial": {
+      "showHints": true,
+      "hints": [
+        {
+          "trigger": "OnLevelStart",
+          "hintText": "Линейная функция — это прямая линия на плоскости.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        },
+        {
+          "trigger": "OnFirstInteraction",
+          "hintText": "Звёзды на этой прямой подчиняются формуле y = kx + b.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        }
+      ]
+    }
   },
   {
     "levelId": "sector_2_level_01",
@@ -219,7 +242,30 @@
       "timerAffectsRating": false,
       "threeStarMaxTime": 0
     },
-    "fragmentReward": 10
+    "fragmentReward": 10,
+    "tutorial": {
+      "showHints": true,
+      "hints": [
+        {
+          "trigger": "OnLevelStart",
+          "hintText": "Найди точку, которая лежит на прямой.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 0
+        },
+        {
+          "trigger": "AfterErrors",
+          "hintText": "Прямая может иметь разный наклон — следи за коэффициентом.",
+          "highlightPosition": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "triggerAfterErrors": 1
+        }
+      ]
+    }
   },
   {
     "levelId": "sector_2_level_02",

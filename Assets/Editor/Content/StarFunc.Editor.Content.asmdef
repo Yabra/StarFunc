@@ -1,0 +1,20 @@
+{
+    "name": "StarFunc.Editor.Content",
+    "rootNamespace": "StarFunc.Editor.Content",
+    "references": [
+        "StarFunc.Core",
+        "StarFunc.Data",
+        "Unity.Newtonsoft.Json"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

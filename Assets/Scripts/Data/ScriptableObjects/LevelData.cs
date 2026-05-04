@@ -39,6 +39,12 @@ namespace StarFunc.Data
         public int MaxAttempts;
         public int MaxAdjustments;
 
+        /// <summary>
+        /// BuildFunction-only: function types the player may pick from.
+        /// Empty/null → no choice (use ReferenceFunctions[0].Type).
+        /// </summary>
+        public FunctionType[] AllowedFunctionTypes;
+
         [Header("Visibility")]
         public bool UseMemoryMode;
         public float MemoryDisplayDuration;
