@@ -52,7 +52,7 @@ Material:
     - _AxisColorX: {r: 1, g: 0.39999998, b: 0.39999998, a: 1}
     - _AxisColorY: {r: 0.39999998, g: 1, b: 0.54999995, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _GridColor: {r: 0.54271203, g: 0.54271203, b: 0.6476259, a: 0.7058824}
+    - _GridColor: {r: 0.98508096, g: 0.98508096, b: 1, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -31,7 +31,11 @@ namespace StarFunc.UI
             }
         }
 
-        public void TransitionIn(Action onComplete)
+        public void TransitionIn(Action onComplete) => TransitionIn(_duration, onComplete);
+
+        public void TransitionOut(Action onComplete) => TransitionOut(_duration, onComplete);
+
+        public void TransitionIn(float duration, Action onComplete)
         {
             KillTween();
 
@@ -43,12 +47,12 @@ namespace StarFunc.UI
 
             _canvasGroup.blocksRaycasts = true;
             _tween = DOTween
-                .To(() => _canvasGroup.alpha, a => _canvasGroup.alpha = a, 1f, _duration)
+                .To(() => _canvasGroup.alpha, a => _canvasGroup.alpha = a, 1f, duration)
                 .SetUpdate(true)
                 .OnComplete(() => onComplete?.Invoke());
         }
 
-        public void TransitionOut(Action onComplete)
+        public void TransitionOut(float duration, Action onComplete)
         {
             KillTween();
 
@@ -59,7 +63,7 @@ namespace StarFunc.UI
             }
 
             _tween = DOTween
-                .To(() => _canvasGroup.alpha, a => _canvasGroup.alpha = a, 0f, _duration)
+                .To(() => _canvasGroup.alpha, a => _canvasGroup.alpha = a, 0f, duration)
                 .SetUpdate(true)
                 .OnComplete(() =>
                 {

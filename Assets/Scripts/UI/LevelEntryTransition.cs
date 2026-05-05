@@ -6,41 +6,49 @@ using UnityEngine;
 namespace StarFunc.UI
 {
     /// <summary>
-    /// Camera-zoom Hub→Level transition. Lives in the Hub scene; tweens
-    /// <see cref="_camera"/>'s position and orthographic size toward the
-    /// tapped level node while fading the shared <see cref="ITransitionOverlay"/>
-    /// to opaque. <see cref="ZoomOut"/> runs the reverse pair so the camera
-    /// pulls back as the screen reveals.
+    /// Hub→Level "dive in" transition. Scales a designated UI RectTransform
+    /// up while fading the Hub CanvasGroup out, so the player feels the
+    /// level path rushing past the camera into the tapped node.
+    /// <para>
+    /// We deliberately do NOT tween the camera or its orthographic size.
+    /// The Hub canvas is in ScreenSpaceCamera mode and the shared
+    /// <c>PersistentBackground</c> rescales itself to match the camera
+    /// every frame, so a camera-ortho tween cancels out visually — both
+    /// the canvas and the background compensate, and nothing appears to
+    /// move. Animating the UI directly sidesteps both auto-rescalings.
+    /// </para>
     /// </summary>
     public class LevelEntryTransition : MonoBehaviour, ILevelEntryTransition
     {
-        [Tooltip("Hub camera that gets tweened. If left blank we fall back to " +
-                 "Camera.main at runtime — fine for the standard setup.")]
-        [SerializeField] Camera _camera;
+        [Tooltip("UI RectTransform that gets scaled up on ZoomIn and back on " +
+                 "ZoomOut. Wire this to whatever should appear to grow toward " +
+                 "the camera — typically the Screens parent or the SectorScreen " +
+                 "RectTransform itself. Scaling is applied around the rect's " +
+                 "current pivot.")]
+        [SerializeField] RectTransform _uiZoomTarget;
 
-        [Tooltip("Optional CanvasGroup for the Hub UI. Faded out alongside the " +
-                 "camera tween so the level path doesn't pop while the camera " +
-                 "moves. Leave null if the transition overlay alone is enough.")]
+        [Tooltip("CanvasGroup faded from 1→0 during ZoomIn (and reverse on " +
+                 "ZoomOut) so the level path dissolves into the level scene " +
+                 "instead of popping at the end of the scale tween.")]
         [SerializeField] CanvasGroup _hubCanvasGroup;
 
         [Tooltip("Total tween duration in seconds for both ZoomIn and ZoomOut.")]
-        [SerializeField] float _duration = 0.55f;
+        [SerializeField] float _duration = 1.1f;
 
-        [Tooltip("Multiplier applied to the camera's original orthographic size " +
-                 "at the end of ZoomIn. 0.45 = camera ends ~half as wide, i.e. " +
-                 "roughly 2× zoom.")]
-        [SerializeField, Range(0.1f, 1f)] float _zoomedOrthoMultiplier = 0.45f;
+        [Tooltip("Final localScale of _uiZoomTarget at the end of ZoomIn. " +
+                 "2.5 means the UI ends ~2.5× its original size, which is the " +
+                 "perceived 'rushing toward the camera' amount.")]
+        [SerializeField] float _zoomScale = 2.5f;
 
-        [Tooltip("Easing applied to both position and orthoSize tweens.")]
+        [Tooltip("Easing applied to scale and alpha tweens.")]
         [SerializeField] Ease _ease = Ease.InOutQuad;
 
-        Vector3 _originalCameraPos;
-        float _originalOrthoSize;
+        Vector3 _originalScale = Vector3.one;
+        float _originalAlpha = 1f;
         bool _capturedOriginal;
 
-        Tween _posTween;
-        Tween _sizeTween;
-        Tween _hubFadeTween;
+        Tween _scaleTween;
+        Tween _alphaTween;
 
         void Awake()
         {
@@ -55,117 +63,102 @@ namespace StarFunc.UI
 
         public void ZoomIn(Vector3 worldPos, Action onComplete)
         {
-            var cam = ResolveCamera();
-            if (cam == null)
-            {
-                FadeOverlayIn(onComplete);
-                return;
-            }
+            // worldPos is intentionally unused for now; the scale grows
+            // around the rect's pivot. A future per-node variant could
+            // shift _uiZoomTarget.pivot to align with the tapped node.
+            _ = worldPos;
 
-            CaptureOriginalOnce(cam);
+            CaptureOriginalOnce();
             KillTweens();
 
-            // Keep the camera's z (depth) — only ease the xy plane toward
-            // the node so the orthographic frame zooms cleanly without
-            // jumping the near/far plane.
-            var target = new Vector3(worldPos.x, worldPos.y, _originalCameraPos.z);
-            _posTween = cam.transform
-                .DOMove(target, _duration)
-                .SetEase(_ease)
-                .SetUpdate(true);
+            bool drivesCallback = false;
 
-            float targetSize = _originalOrthoSize * _zoomedOrthoMultiplier;
-            _sizeTween = DOTween
-                .To(() => cam.orthographicSize, v => cam.orthographicSize = v,
-                    targetSize, _duration)
-                .SetEase(_ease)
-                .SetUpdate(true);
+            if (_uiZoomTarget != null)
+            {
+                drivesCallback = true;
+                _scaleTween = _uiZoomTarget
+                    .DOScale(_originalScale * _zoomScale, _duration)
+                    .SetEase(_ease)
+                    .SetUpdate(true)
+                    .OnComplete(() => onComplete?.Invoke());
+            }
 
             if (_hubCanvasGroup != null)
             {
-                _hubFadeTween = DOTween
+                var alphaTween = DOTween
                     .To(() => _hubCanvasGroup.alpha,
                         v => _hubCanvasGroup.alpha = v, 0f, _duration)
                     .SetEase(_ease)
                     .SetUpdate(true);
+
+                // If we don't have a scale target, the alpha tween drives the
+                // callback so the SceneFlowManager still gets a "go" signal.
+                if (!drivesCallback)
+                    alphaTween.OnComplete(() => onComplete?.Invoke());
+
+                _alphaTween = alphaTween;
             }
 
-            FadeOverlayIn(onComplete);
+            if (_uiZoomTarget == null && _hubCanvasGroup == null)
+                onComplete?.Invoke();
         }
 
         public void ZoomOut(Action onComplete)
         {
-            var cam = ResolveCamera();
-            if (!_capturedOriginal || cam == null)
+            if (!_capturedOriginal)
             {
-                FadeOverlayOut(onComplete);
+                onComplete?.Invoke();
                 return;
             }
 
             KillTweens();
 
-            _posTween = cam.transform
-                .DOMove(_originalCameraPos, _duration)
-                .SetEase(_ease)
-                .SetUpdate(true);
+            bool drivesCallback = false;
 
-            _sizeTween = DOTween
-                .To(() => cam.orthographicSize, v => cam.orthographicSize = v,
-                    _originalOrthoSize, _duration)
-                .SetEase(_ease)
-                .SetUpdate(true);
+            if (_uiZoomTarget != null)
+            {
+                drivesCallback = true;
+                _scaleTween = _uiZoomTarget
+                    .DOScale(_originalScale, _duration)
+                    .SetEase(_ease)
+                    .SetUpdate(true)
+                    .OnComplete(() => onComplete?.Invoke());
+            }
 
             if (_hubCanvasGroup != null)
             {
-                _hubFadeTween = DOTween
+                var alphaTween = DOTween
                     .To(() => _hubCanvasGroup.alpha,
-                        v => _hubCanvasGroup.alpha = v, 1f, _duration)
+                        v => _hubCanvasGroup.alpha = v, _originalAlpha, _duration)
                     .SetEase(_ease)
                     .SetUpdate(true);
+
+                if (!drivesCallback)
+                    alphaTween.OnComplete(() => onComplete?.Invoke());
+
+                _alphaTween = alphaTween;
             }
 
-            FadeOverlayOut(onComplete);
+            if (_uiZoomTarget == null && _hubCanvasGroup == null)
+                onComplete?.Invoke();
         }
 
-        Camera ResolveCamera()
-        {
-            if (_camera != null) return _camera;
-            _camera = Camera.main;
-            return _camera;
-        }
-
-        void CaptureOriginalOnce(Camera cam)
+        void CaptureOriginalOnce()
         {
             if (_capturedOriginal) return;
-            _originalCameraPos = cam.transform.position;
-            _originalOrthoSize = cam.orthographic ? cam.orthographicSize : 5f;
+            if (_uiZoomTarget != null)
+                _originalScale = _uiZoomTarget.localScale;
+            if (_hubCanvasGroup != null)
+                _originalAlpha = _hubCanvasGroup.alpha;
             _capturedOriginal = true;
-        }
-
-        static void FadeOverlayIn(Action onComplete)
-        {
-            if (ServiceLocator.Contains<ITransitionOverlay>())
-                ServiceLocator.Get<ITransitionOverlay>().TransitionIn(onComplete);
-            else
-                onComplete?.Invoke();
-        }
-
-        static void FadeOverlayOut(Action onComplete)
-        {
-            if (ServiceLocator.Contains<ITransitionOverlay>())
-                ServiceLocator.Get<ITransitionOverlay>().TransitionOut(onComplete);
-            else
-                onComplete?.Invoke();
         }
 
         void KillTweens()
         {
-            if (_posTween != null && _posTween.IsActive()) _posTween.Kill();
-            if (_sizeTween != null && _sizeTween.IsActive()) _sizeTween.Kill();
-            if (_hubFadeTween != null && _hubFadeTween.IsActive()) _hubFadeTween.Kill();
-            _posTween = null;
-            _sizeTween = null;
-            _hubFadeTween = null;
+            if (_scaleTween != null && _scaleTween.IsActive()) _scaleTween.Kill();
+            if (_alphaTween != null && _alphaTween.IsActive()) _alphaTween.Kill();
+            _scaleTween = null;
+            _alphaTween = null;
         }
     }
 }

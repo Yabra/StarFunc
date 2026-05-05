@@ -31,6 +31,12 @@ namespace StarFunc.Infrastructure
                 onLoaded: () =>
                 {
                     SetHubUIActive(false);
+                    // Disable Hub's camera so Camera.main resolves to the
+                    // Level camera unambiguously — both scenes ship cameras
+                    // tagged MainCamera, and the persistent background uses
+                    // Camera.main to size itself. With Hub's camera off the
+                    // sprite gets Level's ortho size, not Hub's.
+                    SetHubCameraEnabled(false);
                     _isLevelLoaded = true;
                 },
                 coverAlreadyShown: true));
@@ -135,8 +141,6 @@ namespace StarFunc.Infrastructure
             var transition = GetTransition();
             var levelEntry = GetLevelEntryTransition();
 
-            yield return WaitForTransitionIn(transition);
-
             overlay?.ShowDelayed(LoadingOverlayDelay);
 
             var op = SceneManager.UnloadSceneAsync("Level");
@@ -147,6 +151,9 @@ namespace StarFunc.Infrastructure
             }
 
             SetHubUIActive(true);
+            // Re-enable Hub's camera before the ZoomOut starts — otherwise
+            // there's nothing rendering Hub once Level is gone.
+            SetHubCameraEnabled(true);
             _isLevelLoaded = false;
             CurrentLevel = null;
             LevelData.ActiveLevel = null;
@@ -154,10 +161,10 @@ namespace StarFunc.Infrastructure
             overlay?.SetProgress(1f);
             overlay?.Hide();
 
-            // Pull the camera back to its original framing while the
-            // overlay fades out. ZoomOut falls back to a plain
-            // TransitionOut if no LevelEntryTransition is registered, so
-            // this is safe even in scenes that haven't wired one up.
+            // Pull the camera back to its original framing. With the same
+            // background shared across Hub/Level the unload reads as a
+            // continuous dolly-out — no overlay fade needed. Falls back to
+            // TransitionOut if a scene hasn't wired up LevelEntryTransition.
             if (levelEntry != null)
                 levelEntry.ZoomOut(null);
             else
@@ -197,6 +204,20 @@ namespace StarFunc.Infrastructure
         {
             // Hub UI visibility will be managed when HubScreen is implemented.
             // For now this is a no-op placeholder.
+        }
+
+        static void SetHubCameraEnabled(bool enabled)
+        {
+            var hubScene = SceneManager.GetSceneByName("Hub");
+            if (!hubScene.IsValid() || !hubScene.isLoaded) return;
+
+            foreach (var root in hubScene.GetRootGameObjects())
+            {
+                var cam = root.GetComponentInChildren<Camera>(includeInactive: true);
+                if (cam == null) continue;
+                cam.enabled = enabled;
+                return;
+            }
         }
     }
 }

@@ -78,6 +78,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: StarFunc.UI::StarFunc.UI.FragmentsDisplay
   _fragmentsText: {fileID: 1184605164359325038}
+  _icon: {fileID: 0}
   _format: "\u25C6 {0}"
 --- !u!1 &5616049769598287836
 GameObject:
@@ -281,9 +282,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: -9120619510653158192, guid: 62fd99d6adde0660eb9db5fda20fe860, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1

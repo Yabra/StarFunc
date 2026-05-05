@@ -345,6 +345,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: StarsDisplay
       objectReference: {fileID: 0}
+    - target: {fileID: 3077664783192514873, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 4815476061570213978, guid: b9d05da150732eca593a6a6864ea1c82, type: 3}
     - target: {fileID: 3087103432499447589, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -439,14 +443,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4284230907119234664, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6436018738734845958, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6436018738734845958, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
-      propertyPath: m_AnchorMin.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6436018738734845958, guid: 82f06e657722952a99de57840d5d46ff, type: 3}
