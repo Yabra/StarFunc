@@ -18,20 +18,21 @@ namespace StarFunc.Gameplay
         [SerializeField] float _sadScaleMin = 0.85f;
         [SerializeField] float _excitedScalePeak = 1.35f;
 
-        float _baseY;
+        float _prevBobOffset;
         Coroutine _reactionCoroutine;
-
-        void Awake()
-        {
-            _baseY = transform.localPosition.y;
-        }
 
         void Update()
         {
+            // Subtract last frame's bob first so external position changes
+            // (e.g. HubScreen.UpdateGhostPosition snapping the ghost to a
+            // sector anchor) carry through — otherwise the bob would clamp
+            // y back to whatever Awake captured at scene load and the
+            // ghost would render with a phantom y-offset from its anchor.
             float bobOffset = Mathf.Sin(Time.time * _bobFrequency * Mathf.PI * 2f) * _bobAmplitude;
             var pos = transform.localPosition;
-            pos.y = _baseY + bobOffset;
+            pos.y = pos.y - _prevBobOffset + bobOffset;
             transform.localPosition = pos;
+            _prevBobOffset = bobOffset;
         }
 
         public void PlayEmotionReaction(GhostEmotion emotion)

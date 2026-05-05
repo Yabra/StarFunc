@@ -27,6 +27,19 @@ namespace StarFunc.UI
         [SerializeField] Button _shopButton;
         [SerializeField] Button _settingsButton;
 
+        [Header("Connections")]
+        [Tooltip("Parent RectTransform under which the bezier connection " +
+                 "GameObjects are spawned. Usually the same parent that holds " +
+                 "the sector nodes (e.g. MapArea). Leave null to fall back to " +
+                 "the first sector node's parent.")]
+        [SerializeField] RectTransform _connectionContainer;
+        [Tooltip("Bezier line thickness in canvas units.")]
+        [SerializeField] float _connectionThickness = 8f;
+        [Tooltip("Perpendicular curve offset of the bezier control point. " +
+                 "Sign alternates per connection so the path snakes between " +
+                 "sectors instead of bending uniformly.")]
+        [SerializeField] float _connectionCurve = 90f;
+
         [Header("Events")]
         [SerializeField] GameEvent<SectorData> _onSectorUnlocked;
         [SerializeField] GameEvent<SectorData> _onSectorCompleted;
@@ -46,11 +59,18 @@ namespace StarFunc.UI
         // looking at the Hub.
         readonly Queue<SectorData> _pendingOutros = new();
 
+        // Bezier-line connections between consecutive sector nodes.
+        // Replaces the per-node connection Image (which couldn't follow
+        // arbitrary designer-placed positions). Rebuilt on Start, recoloured
+        // on RefreshAll.
+        readonly List<BezierUILine> _connections = new();
+
         void Start()
         {
             CacheServices();
             BindSectorNodes();
             BindButtons();
+            BuildConnections();
             RefreshAll();
         }
 
@@ -120,6 +140,7 @@ namespace StarFunc.UI
             if (_progression == null) return;
 
             RefreshSectorNodes();
+            RefreshConnections();
             RefreshTopBar();
             UpdateGhostPosition();
         }
@@ -134,16 +155,104 @@ namespace StarFunc.UI
 
                 _sectorNodes[i].Setup(sector, state, stars);
 
-                // Connection line color matches destination sector state
-                Color lineColor = state == SectorState.Locked
-                    ? new Color(1f, 1f, 1f, 0.15f)
-                    : sector.AccentColor;
-                _sectorNodes[i].SetConnectionLineColor(lineColor);
-
                 bool showBadge = _notifications != null
                                  && _notifications.HasNewContent(sector.SectorId);
                 _sectorNodes[i].SetBadge(showBadge);
             }
+        }
+
+        // =========================================================================
+        // Bezier connections between sector nodes
+        // =========================================================================
+
+        void BuildConnections()
+        {
+            ClearConnections();
+
+            if (_sectorNodes == null || _sectorNodes.Length < 2) return;
+
+            var container = ResolveConnectionContainer();
+            if (container == null) return;
+
+            for (int i = 0; i < _sectorNodes.Length - 1; i++)
+            {
+                var a = _sectorNodes[i];
+                var b = _sectorNodes[i + 1];
+                if (a == null || b == null) continue;
+
+                var go = new GameObject(
+                    $"SectorConnection_{i}",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(BezierUILine));
+                go.transform.SetParent(container, worldPositionStays: false);
+
+                var crt = (RectTransform)go.transform;
+                // Match the level-path setup: anchor at parent centre with
+                // zero size, then push start/end points in directly via
+                // anchoredPosition coords. Sector nodes' anchored positions
+                // are designer-set within this container, so converting via
+                // InverseTransformPoint keeps the bezier in the same space.
+                crt.anchorMin = new Vector2(0.5f, 0.5f);
+                crt.anchorMax = new Vector2(0.5f, 0.5f);
+                crt.pivot = new Vector2(0.5f, 0.5f);
+                crt.anchoredPosition = Vector2.zero;
+                crt.sizeDelta = Vector2.zero;
+                crt.localScale = Vector3.one;
+
+                var line = go.GetComponent<BezierUILine>();
+                line.Thickness = _connectionThickness;
+                line.CurveOffset = (i % 2 == 0 ? 1f : -1f) * _connectionCurve;
+                line.SetEndpoints(LocalPos(a.transform, container),
+                                  LocalPos(b.transform, container));
+
+                // Render behind the sector nodes so the bezier reads as a
+                // background path, not an overlay.
+                go.transform.SetAsFirstSibling();
+                _connections.Add(line);
+            }
+        }
+
+        void RefreshConnections()
+        {
+            if (_connections.Count == 0) return;
+
+            for (int i = 0; i < _connections.Count; i++)
+            {
+                int destIndex = i + 1;
+                if (destIndex >= _sectors.Length) continue;
+
+                var destState = _progression.GetSectorState(_sectors[destIndex].SectorId);
+                Color c = destState == SectorState.Locked
+                    ? new Color(1f, 1f, 1f, 0.15f)
+                    : _sectors[destIndex].AccentColor;
+                _connections[i].color = c;
+            }
+        }
+
+        void ClearConnections()
+        {
+            foreach (var conn in _connections)
+                if (conn) Destroy(conn.gameObject);
+            _connections.Clear();
+        }
+
+        RectTransform ResolveConnectionContainer()
+        {
+            if (_connectionContainer != null) return _connectionContainer;
+            // Fall back to the parent of the first sector node — works for
+            // the common case where all nodes share a single MapArea.
+            for (int i = 0; i < _sectorNodes.Length; i++)
+            {
+                if (_sectorNodes[i] == null) continue;
+                return _sectorNodes[i].transform.parent as RectTransform;
+            }
+            return null;
+        }
+
+        static Vector2 LocalPos(Transform node, RectTransform container)
+        {
+            // World→container-local so the bezier sits in the same coord
+            // space as the sector nodes' anchored positions.
+            return container.InverseTransformPoint(node.position);
         }
 
         void RefreshTopBar()
@@ -345,6 +454,8 @@ namespace StarFunc.UI
 
         void OnDestroy()
         {
+            ClearConnections();
+
             if (_sectorNodes != null)
             {
                 foreach (var node in _sectorNodes)

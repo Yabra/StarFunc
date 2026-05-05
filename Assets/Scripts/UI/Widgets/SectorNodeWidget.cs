@@ -13,7 +13,7 @@ namespace StarFunc.UI
         [Header("Visual")]
         [SerializeField] Image _sectorIcon;
         [SerializeField] Image _stateRing;
-        [SerializeField] Image _connectionLine;
+        [SerializeField] Image _sectorConstellation;
         [SerializeField] GameObject _lockOverlay;
         [SerializeField] GameObject _notificationBadge;
         [SerializeField] TMP_Text _sectorNameText;
@@ -45,6 +45,10 @@ namespace StarFunc.UI
 
             if (_sectorIcon && data.SectorIcon)
                 _sectorIcon.sprite = data.SectorIcon;
+
+            // Constellation sprite is picked in ApplyVisualState (driven by
+            // state) so the swap to the "restored" art happens automatically
+            // when the sector transitions to Completed.
         }
 
         public void UpdateState(SectorState state, int starsCollected)
@@ -70,12 +74,31 @@ namespace StarFunc.UI
 
             if (_sectorIcon)
             {
-                _sectorIcon.color = state switch
+                // Locked sectors are silhouetted by the lock overlay; the
+                // sector's own icon is hidden so it doesn't poke through.
+                // Completed sectors fade the icon down so the restored
+                // constellation reads as the focal element of the node.
+                _sectorIcon.enabled = state != SectorState.Locked;
+                _sectorIcon.color = state == SectorState.Completed
+                    ? new Color(1f, 1f, 1f, 0.75f)
+                    : Color.white;
+            }
+
+            if (_sectorConstellation)
+            {
+                _sectorConstellation.enabled = state != SectorState.Locked;
+                if (_sectorData != null)
                 {
-                    SectorState.Locked => new Color(0.3f, 0.3f, 0.3f, 0.5f),
-                    SectorState.Completed => Color.white,
-                    _ => Color.white
-                };
+                    // Completed sectors reveal the "restored" constellation
+                    // (the lit-up version of the same shape). Fall back to
+                    // the base sprite if the designer hasn't authored a
+                    // restored variant yet.
+                    var restored = _sectorData.ConstellationRestoredSprite;
+                    var baseSprite = _sectorData.ConstellationSprite;
+                    _sectorConstellation.sprite = state == SectorState.Completed
+                        ? (restored != null ? restored : baseSprite)
+                        : baseSprite;
+                }
             }
 
             if (_stateRing && _sectorData != null)
@@ -85,7 +108,9 @@ namespace StarFunc.UI
                     SectorState.Locked => new Color(0.3f, 0.3f, 0.3f, 0.3f),
                     SectorState.Available => _sectorData.AccentColor,
                     SectorState.InProgress => _sectorData.AccentColor,
-                    SectorState.Completed => new Color(1f, 0.84f, 0f),
+                    // Completed sectors hide the state ring entirely so the
+                    // restored constellation sits centre-stage.
+                    SectorState.Completed => new Color(1f, 1f, 1f, 0f),
                     _ => Color.white
                 };
             }
@@ -129,12 +154,6 @@ namespace StarFunc.UI
             if (_badgeTween != null && _badgeTween.IsActive())
                 _badgeTween.Kill();
             _badgeTween = null;
-        }
-
-        public void SetConnectionLineColor(Color color)
-        {
-            if (_connectionLine)
-                _connectionLine.color = color;
         }
 
         void HandleClick()

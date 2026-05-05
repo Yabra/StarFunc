@@ -38,11 +38,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 16e7f74a54875573d933da0828a2e9f2, type: 2}
   PreviousSector: {fileID: 0}
   RequiredStarsToUnlock: 0
-  ConstellationSprite: {fileID: 2806495800830957566, guid: 46be2c529ea7ffb5aa0d79739a142b23, type: 3}
-  ConstellationRestoredSprite: {fileID: 5929990137091948572, guid: ba23f8db3eec438d99d6e6f16878c11e, type: 3}
-  SectorIcon: {fileID: 0}
+  ConstellationSprite: {fileID: 21300000, guid: 46be2c529ea7ffb5aa0d79739a142b23, type: 3}
+  ConstellationRestoredSprite: {fileID: 21300000, guid: ba23f8db3eec438d99d6e6f16878c11e, type: 3}
+  SectorIcon: {fileID: 100666451448543208, guid: ff004f53b052cc988bd2de0c43e52de3, type: 3}
   AccentColor: {r: 0.95, g: 0.55, b: 0.3, a: 1}
   StarColor: {r: 1, g: 1, b: 1, a: 1}
-  ConstellationStarAngles: []
   IntroCutscene: {fileID: 11400000, guid: 89350170eb36757cb851c489fa09906d, type: 2}
   OutroCutscene: {fileID: 0}
