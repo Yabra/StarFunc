@@ -1562,6 +1562,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: StarFunc.UI::StarFunc.UI.LivesDisplay
   _livesText: {fileID: 284369385}
+  _icon: {fileID: 0}
   _notificationBadge: {fileID: 0}
 --- !u!114 &284369385
 MonoBehaviour:
@@ -2802,6 +2803,7 @@ GameObject:
   - component: {fileID: 614472747}
   - component: {fileID: 614472745}
   - component: {fileID: 614472750}
+  - component: {fileID: 614472751}
   m_Layer: 0
   m_Name: MainCamera
   m_TagString: MainCamera
@@ -2963,6 +2965,20 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_MaxRayIntersections: 0
+--- !u!114 &614472751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 614472744}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90d60e00a94b429de87857ecd13cacd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: StarFunc.Core::StarFunc.Core.DuplicateAvoider
+  _target: {fileID: 614472748}
+  _disableGameObject: 0
 --- !u!1 &698308898
 GameObject:
   m_ObjectHideFlags: 0
@@ -4432,6 +4448,7 @@ GameObject:
   - component: {fileID: 983354727}
   - component: {fileID: 983354729}
   - component: {fileID: 983354728}
+  - component: {fileID: 983354730}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -4500,6 +4517,20 @@ MonoBehaviour:
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
+--- !u!114 &983354730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 983354726}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90d60e00a94b429de87857ecd13cacd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: StarFunc.Core::StarFunc.Core.DuplicateAvoider
+  _target: {fileID: 983354729}
+  _disableGameObject: 1
 --- !u!1 &1002345347
 GameObject:
   m_ObjectHideFlags: 0
@@ -5026,6 +5057,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: StarFunc.UI::StarFunc.UI.UIService
   _screenContainer: {fileID: 1624283616}
   _popupContainer: {fileID: 380103903}
+  _defaultScreen: {fileID: 0}
 --- !u!114 &1072611072
 MonoBehaviour:
   m_ObjectHideFlags: 0

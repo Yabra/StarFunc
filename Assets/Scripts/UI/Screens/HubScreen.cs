@@ -148,8 +148,9 @@ namespace StarFunc.UI
 
         void RefreshTopBar()
         {
+            // Glyph (★) lives in a sibling Image now — text holds just the number.
             if (_totalStarsText)
-                _totalStarsText.text = $"★ {_progression.GetTotalStars()}";
+                _totalStarsText.text = _progression.GetTotalStars().ToString();
 
             if (_fragmentsDisplay)
                 _fragmentsDisplay.SetFragments(_economy.GetFragments());
@@ -200,13 +201,16 @@ namespace StarFunc.UI
             _notifications?.MarkSeen(INotificationService.LivesRefilledId);
 
             // Intro cutscene only on the very first time the player taps into
-            // a sector. We use a PlayerPrefs flag so the intro doesn't replay
-            // if the player closes the SectorScreen and taps the same sector
-            // again on the same save.
+            // a sector. We mark the flag from the popup's onComplete (not
+            // before Show) so the cutscene gets another chance if the popup
+            // bailed early — e.g. data was empty, popup wasn't found, etc.
             if (sector.IntroCutscene != null && !HasIntroBeenShown(sector.SectorId))
             {
-                MarkIntroShown(sector.SectorId);
-                ShowCutscene(sector.IntroCutscene, () => OpenSectorScreen(sector));
+                ShowCutscene(sector.IntroCutscene, () =>
+                {
+                    MarkIntroShown(sector.SectorId);
+                    OpenSectorScreen(sector);
+                });
                 return;
             }
 
@@ -251,10 +255,15 @@ namespace StarFunc.UI
             if (sector == null || sector.OutroCutscene == null) return;
             if (HasOutroBeenShown(sector.SectorId)) return;
 
-            MarkOutroShown(sector.SectorId);
-            // Onwards: keep draining sequentially after the cutscene closes,
-            // in case multiple sectors were completed back-to-back.
-            ShowCutscene(sector.OutroCutscene, DrainPendingOutros);
+            // Same as the intro path: mark from the popup's onComplete so a
+            // failed/empty cutscene doesn't permanently mark itself as seen.
+            ShowCutscene(sector.OutroCutscene, () =>
+            {
+                MarkOutroShown(sector.SectorId);
+                // Keep draining sequentially after the cutscene closes, in
+                // case multiple sectors were completed back-to-back.
+                DrainPendingOutros();
+            });
         }
 
         void ShowCutscene(CutsceneData data, System.Action onComplete)
@@ -277,7 +286,7 @@ namespace StarFunc.UI
         }
 
         static bool HasIntroBeenShown(string sectorId) =>
-            PlayerPrefs.GetInt(IntroShownPrefix + sectorId, 0) == 1;
+            false && PlayerPrefs.GetInt(IntroShownPrefix + sectorId, 0) == 1;
 
         static void MarkIntroShown(string sectorId)
         {
@@ -286,7 +295,7 @@ namespace StarFunc.UI
         }
 
         static bool HasOutroBeenShown(string sectorId) =>
-            PlayerPrefs.GetInt(OutroShownPrefix + sectorId, 0) == 1;
+            false && PlayerPrefs.GetInt(OutroShownPrefix + sectorId, 0) == 1;
 
         static void MarkOutroShown(string sectorId)
         {

@@ -32,6 +32,20 @@ namespace StarFunc.Core
             return _services.ContainsKey(typeof(T));
         }
 
+        /// <summary>
+        /// Remove the registration for <typeparamref name="T"/> if (and only
+        /// if) the registered value is the supplied instance. Used by
+        /// scene-scoped services (e.g. <c>UIService</c>) that need to release
+        /// their slot when their scene unloads, without yanking a replacement
+        /// that has since taken over.
+        /// </summary>
+        public static void Unregister<T>(T service) where T : class
+        {
+            var type = typeof(T);
+            if (_services.TryGetValue(type, out var existing) && ReferenceEquals(existing, service))
+                _services.Remove(type);
+        }
+
         public static void Reset()
         {
             _services.Clear();

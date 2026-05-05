@@ -16,6 +16,11 @@ MonoBehaviour:
   Frames:
   - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
     CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
-    Text: Hi there
+    Text: "\u041F\u0440\u0438\u0432\u0435\u0442!"
     Duration: 0
-    Animation: 1
+    Animation: 2
+  - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
+    Text: "\u041A\u0430\u043A \u0434\u0435\u043B\u0430?"
+    Duration: 0
+    Animation: 0

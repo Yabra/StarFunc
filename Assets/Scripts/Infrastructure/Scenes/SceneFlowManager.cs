@@ -23,11 +23,17 @@ namespace StarFunc.Infrastructure
 
             CurrentLevel = level;
             LevelData.ActiveLevel = level;
-            StartCoroutine(LoadSceneRoutine("Level", LoadSceneMode.Additive, onLoaded: () =>
-            {
-                SetHubUIActive(false);
-                _isLevelLoaded = true;
-            }));
+            // SectorScreen runs LevelEntryTransition.ZoomIn before firing the
+            // selected event, so by the time we get here the screen is already
+            // covered. Pass coverAlreadyShown=true so we don't run another
+            // (redundant) TransitionIn fade.
+            StartCoroutine(LoadSceneRoutine("Level", LoadSceneMode.Additive,
+                onLoaded: () =>
+                {
+                    SetHubUIActive(false);
+                    _isLevelLoaded = true;
+                },
+                coverAlreadyShown: true));
         }
 
         /// <summary>
@@ -64,12 +70,13 @@ namespace StarFunc.Infrastructure
         }
 
         IEnumerator LoadSceneRoutine(string sceneName, LoadSceneMode mode,
-            System.Action onLoaded = null)
+            System.Action onLoaded = null, bool coverAlreadyShown = false)
         {
             var overlay = GetOverlay();
             var transition = GetTransition();
 
-            yield return WaitForTransitionIn(transition);
+            if (!coverAlreadyShown)
+                yield return WaitForTransitionIn(transition);
 
             overlay?.ShowDelayed(LoadingOverlayDelay);
 
@@ -126,6 +133,7 @@ namespace StarFunc.Infrastructure
         {
             var overlay = GetOverlay();
             var transition = GetTransition();
+            var levelEntry = GetLevelEntryTransition();
 
             yield return WaitForTransitionIn(transition);
 
@@ -146,7 +154,14 @@ namespace StarFunc.Infrastructure
             overlay?.SetProgress(1f);
             overlay?.Hide();
 
-            transition?.TransitionOut(null);
+            // Pull the camera back to its original framing while the
+            // overlay fades out. ZoomOut falls back to a plain
+            // TransitionOut if no LevelEntryTransition is registered, so
+            // this is safe even in scenes that haven't wired one up.
+            if (levelEntry != null)
+                levelEntry.ZoomOut(null);
+            else
+                transition?.TransitionOut(null);
         }
 
         static IEnumerator WaitForTransitionIn(ITransitionOverlay transition)
@@ -168,6 +183,13 @@ namespace StarFunc.Infrastructure
         {
             return ServiceLocator.Contains<ITransitionOverlay>()
                 ? ServiceLocator.Get<ITransitionOverlay>()
+                : null;
+        }
+
+        static ILevelEntryTransition GetLevelEntryTransition()
+        {
+            return ServiceLocator.Contains<ILevelEntryTransition>()
+                ? ServiceLocator.Get<ILevelEntryTransition>()
                 : null;
         }
 

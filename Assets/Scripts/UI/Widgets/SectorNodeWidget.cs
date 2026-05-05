@@ -51,8 +51,9 @@ namespace StarFunc.UI
         {
             _state = state;
 
+            // Glyph (★) lives in a sibling Image now — text holds just the number.
             if (_starsText)
-                _starsText.text = state == SectorState.Locked ? "" : $"★ {starsCollected}";
+                _starsText.text = state == SectorState.Locked ? "" : starsCollected.ToString();
 
             ApplyVisualState(state);
         }

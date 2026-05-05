@@ -1,6 +1,7 @@
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace StarFunc.UI
 {
@@ -9,13 +10,20 @@ namespace StarFunc.UI
         const float BadgeAppearDuration = 0.35f;
 
         [SerializeField] TMP_Text _livesText;
+        [Tooltip("Optional heart icon Image — designer-assigned sprite, sits next " +
+                 "to the count. Leave null if the sprite is positioned in the " +
+                 "scene without a script reference.")]
+        [SerializeField] Image _icon;
         [SerializeField] GameObject _notificationBadge;
 
         Tween _badgeTween;
 
         public void SetLives(int count)
         {
-            _livesText.text = $"♥ {count}";
+            // Heart glyph used to be embedded in text — it's now a sibling
+            // Image because most fonts in the project don't ship that codepoint.
+            if (_livesText) _livesText.text = count.ToString();
+            _ = _icon; // reserved for future tinting (e.g. dim when 0 lives)
         }
 
         /// <summary>

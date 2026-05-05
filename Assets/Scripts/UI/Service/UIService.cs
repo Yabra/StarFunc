@@ -4,6 +4,7 @@ using System.Linq;
 using StarFunc.Core;
 using StarFunc.Data;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace StarFunc.UI
 {
@@ -26,7 +27,19 @@ namespace StarFunc.UI
         {
             CollectScreens();
             CollectPopups();
-            ServiceLocator.Register<IUIService>(this);
+            // Each scene ships its own UIService — Hub's stays alive while
+            // Level loads additively, so Level's Awake would otherwise throw
+            // "already registered". Replace the existing registration so the
+            // most-recently-loaded scene owns the slot; we restore the prior
+            // owner on scene-unload (see OnSceneUnloaded below).
+            AcquireRegistration();
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        void OnDestroy()
+        {
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+            ServiceLocator.Unregister<IUIService>(this);
         }
 
         void Start()
@@ -37,6 +50,27 @@ namespace StarFunc.UI
             // Awake and nothing ever calls ShowScreen for it).
             if (_defaultScreen != null)
                 ShowScreenImmediate(_defaultScreen);
+        }
+
+        void AcquireRegistration()
+        {
+            if (ServiceLocator.Contains<IUIService>())
+            {
+                // Take over from whoever's currently holding the slot.
+                var current = ServiceLocator.Get<IUIService>();
+                ServiceLocator.Unregister<IUIService>(current);
+            }
+            ServiceLocator.Register<IUIService>(this);
+        }
+
+        void OnSceneUnloaded(Scene scene)
+        {
+            // If our registration was stolen by a now-unloaded scene's
+            // UIService, reclaim the slot. The displaced (still-alive) Hub
+            // service typically does this when Level unloads.
+            if (this == null) return;
+            if (!ServiceLocator.Contains<IUIService>())
+                ServiceLocator.Register<IUIService>(this);
         }
 
         void CollectScreens()
