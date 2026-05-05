@@ -240,11 +240,41 @@ namespace StarFunc.UI
 
         void OpenSectorScreen(SectorData sector)
         {
-            _uiService.ShowScreen<SectorScreen>();
-
             var sectorScreen = _uiService.GetScreen<SectorScreen>();
-            if (sectorScreen)
-                sectorScreen.SetSector(sector);
+            if (sectorScreen == null) return;
+
+            // Populate sector data BEFORE the zoom-in tween runs, so the
+            // SectorScreen content is visible from the first frame of the
+            // animation rather than popping in halfway through.
+            sectorScreen.SetSector(sector);
+
+            var transition = ServiceLocator.Contains<IHubSectorTransition>()
+                ? ServiceLocator.Get<IHubSectorTransition>()
+                : null;
+
+            if (transition == null)
+            {
+                _uiService.ShowScreen<SectorScreen>();
+                return;
+            }
+
+            var focusNode = GetSectorNodeRect(sector);
+            transition.ZoomIn(this, sectorScreen, focusNode, onComplete: () =>
+            {
+                // Hand off to the screen stack so back-button HideScreen
+                // pops correctly. Skip the default cover-fade since the
+                // zoom already covered the swap.
+                _uiService.ShowScreen<SectorScreen>(useTransition: false);
+            });
+        }
+
+        public RectTransform GetSectorNodeRect(SectorData sector)
+        {
+            if (_sectors == null || _sectorNodes == null) return null;
+            int idx = System.Array.IndexOf(_sectors, sector);
+            if (idx < 0 || idx >= _sectorNodes.Length) return null;
+            var node = _sectorNodes[idx];
+            return node != null ? node.transform as RectTransform : null;
         }
 
         void DrainPendingOutros()

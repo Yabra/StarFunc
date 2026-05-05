@@ -23,7 +23,6 @@ namespace StarFunc.Data
         public Sprite SectorIcon;
         public Color AccentColor;
         public Color StarColor;
-        public float[] ConstellationStarAngles;
 
         [Header("Narrative")]
         public CutsceneData IntroCutscene;

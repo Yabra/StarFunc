@@ -349,7 +349,26 @@ namespace StarFunc.UI
 
         void OnBackClicked()
         {
-            _uiService.HideScreen<SectorScreen>();
+            // Reverse the Hub→Sector zoom on the way out so the entry/exit
+            // feel symmetric. HubScreen.Show (called by HideScreen at the
+            // end of the tween) is the same trigger that drains pending
+            // outro cutscenes today — we keep that invariant by only
+            // calling HideScreen after the zoom-out completes.
+            var transition = ServiceLocator.Contains<IHubSectorTransition>()
+                ? ServiceLocator.Get<IHubSectorTransition>()
+                : null;
+            var hubScreen = _uiService?.GetScreen<HubScreen>();
+
+            if (transition == null || hubScreen == null)
+            {
+                _uiService?.HideScreen<SectorScreen>();
+                return;
+            }
+
+            transition.ZoomOut(this, hubScreen, focusNode: null, onComplete: () =>
+            {
+                _uiService.HideScreen<SectorScreen>();
+            });
         }
 
         void OnDestroy()

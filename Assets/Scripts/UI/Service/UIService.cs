@@ -101,10 +101,18 @@ namespace StarFunc.UI
             }
         }
 
-        public void ShowScreen<T>() where T : UIScreen
+        public void ShowScreen<T>() where T : UIScreen => ShowScreen<T>(true);
+
+        public void ShowScreen<T>(bool useTransition) where T : UIScreen
         {
             var screen = GetScreen<T>();
             if (screen == null) return;
+
+            if (!useTransition)
+            {
+                ShowScreenImmediate(screen);
+                return;
+            }
 
             var transition = ServiceLocator.Contains<ITransitionOverlay>()
                 ? ServiceLocator.Get<ITransitionOverlay>()
