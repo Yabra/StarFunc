@@ -19,9 +19,15 @@ namespace StarFunc.UI
         [SerializeField] Image _progressFill;
         [SerializeField] TMP_Text _progressText;
         [SerializeField] float _fadeDuration = 0.2f;
+        [Tooltip("Seconds to interpolate the progress bar to a new value. " +
+                 "Boot milestones fire faster than the UI redraws, so without " +
+                 "a tween the bar looks like it jumps straight to 100%.")]
+        [SerializeField] float _progressTweenDuration = 0.3f;
 
         Coroutine _delayedShow;
         Tween _fadeTween;
+        Tween _progressTween;
+        float _displayedProgress;
 
         void Awake()
         {
@@ -34,6 +40,11 @@ namespace StarFunc.UI
         {
             CancelDelayedShow();
             KillFade();
+
+            // Reset progress so a re-shown overlay (Boot → Hub → Level
+            // sequence) starts from 0 rather than the previous run's last
+            // value still tweening into view.
+            ResetProgress();
 
             gameObject.SetActive(true);
             if (_canvasGroup)
@@ -97,9 +108,41 @@ namespace StarFunc.UI
 
         public void SetProgress(float progress)
         {
-            float p = Mathf.Clamp01(progress);
-            if (_progressFill) _progressFill.fillAmount = p;
-            if (_progressText) _progressText.text = $"{Mathf.RoundToInt(p * 100f)}%";
+            float target = Mathf.Clamp01(progress);
+
+            KillProgressTween();
+            // No duration / instant requested → snap. Also avoids spawning a
+            // 0-second tween which DOTween treats as a no-op and never updates
+            // the visible value.
+            if (_progressTweenDuration <= 0f)
+            {
+                ApplyProgress(target);
+                return;
+            }
+
+            _progressTween = DOTween
+                .To(() => _displayedProgress, ApplyProgress, target, _progressTweenDuration)
+                .SetUpdate(true);
+        }
+
+        void ApplyProgress(float v)
+        {
+            _displayedProgress = v;
+            if (_progressFill) _progressFill.fillAmount = v;
+            if (_progressText) _progressText.text = $"{Mathf.RoundToInt(v * 100f)}%";
+        }
+
+        void ResetProgress()
+        {
+            KillProgressTween();
+            ApplyProgress(0f);
+        }
+
+        void KillProgressTween()
+        {
+            if (_progressTween != null && _progressTween.IsActive())
+                _progressTween.Kill();
+            _progressTween = null;
         }
 
         IEnumerator DelayedShowRoutine(float seconds)
@@ -129,6 +172,7 @@ namespace StarFunc.UI
         {
             CancelDelayedShow();
             KillFade();
+            KillProgressTween();
         }
     }
 }

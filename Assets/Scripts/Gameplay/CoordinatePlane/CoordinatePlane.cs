@@ -5,8 +5,8 @@ namespace StarFunc.Gameplay
     public class CoordinatePlane : MonoBehaviour
     {
         [Header("Defaults (used if Initialize() is not called)")]
-        [SerializeField] Vector2 _planeMin = new(-5f, -5f);
-        [SerializeField] Vector2 _planeMax = new(5f, 5f);
+        [SerializeField] Vector2 _planeMin = new(-20f, -20f);
+        [SerializeField] Vector2 _planeMax = new(20f, 20f);
         [SerializeField] float _gridStep = 1f;
 
         [Header("Sub-components")]

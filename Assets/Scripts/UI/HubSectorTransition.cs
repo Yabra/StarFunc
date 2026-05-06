@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using StarFunc.Core;
 using UnityEngine;
@@ -39,6 +40,14 @@ namespace StarFunc.UI
         Sequence _activeSequence;
         RectTransform _lastFocusNode;
 
+        // Cached "true rest" position/scale per RectTransform so a
+        // mid-flight transition that gets killed by a fresh one doesn't
+        // poison the new transition with a bogus origin. Captured only
+        // once per rect — the first time we encounter it (when the rect
+        // is presumed to be at rest from scene-time authoring).
+        readonly Dictionary<RectTransform, Vector3> _restPos = new();
+        readonly Dictionary<RectTransform, Vector3> _restScale = new();
+
         void Awake()
         {
             ServiceLocator.Register<IHubSectorTransition>(this);
@@ -74,13 +83,27 @@ namespace StarFunc.UI
                 return;
             }
 
-            if (_activeSequence != null && _activeSequence.IsActive())
-                _activeSequence.Kill();
-
             var sourceRect = source.transform as RectTransform;
             var destRect = dest.transform as RectTransform;
             var sourceCG = source.GetComponent<CanvasGroup>();
             var destCG = dest.GetComponent<CanvasGroup>();
+
+            // Capture each rect's true rest BEFORE killing any prior
+            // sequence — so the first transition records the genuine
+            // resting position. Subsequent calls reuse the cache.
+            EnsureRestCached(sourceRect);
+            EnsureRestCached(destRect);
+
+            // A previous sequence may have been killed mid-flight; force
+            // the rects back to their true rest pose first so the new
+            // transition starts from a clean baseline (otherwise any
+            // residual offset would be visible as a "jump" on frame 1).
+            if (_activeSequence != null && _activeSequence.IsActive())
+            {
+                _activeSequence.Kill();
+                ResetToRest(sourceRect);
+                ResetToRest(destRect);
+            }
 
             // Both screens need to be live during the cross-fade; alpha is
             // what hides them, not deactivation.
@@ -97,12 +120,10 @@ namespace StarFunc.UI
             float crossfadeStart = isZoomIn ? _destStartScale : 1f;
             float crossfadeEnd = isZoomIn ? 1f : _destStartScale;
 
-            // Capture the rests so we can restore exactly afterward —
-            // critical because the tween offsets transform.position and
-            // localScale, and the source screen will be reused (e.g. Hub
-            // shown again after ZoomOut, then later zoomed into again).
-            Vector3 pivotedOrigPos = pivotedRect.position;
-            Vector3 crossfadeOrigPos = crossfadeRect.position;
+            // Use cached rest values, never the rect's current pose,
+            // so a killed-mid-flight tween can't poison this run.
+            Vector3 pivotedOrigPos = _restPos[pivotedRect];
+            Vector3 crossfadeOrigPos = _restPos[crossfadeRect];
 
             Vector3 focusOffset = focusNode != null
                 ? focusNode.position - pivotedOrigPos
@@ -152,19 +173,34 @@ namespace StarFunc.UI
             seq.SetUpdate(true);
             seq.OnComplete(() =>
             {
-                // Snap both rects back to their resting transform so a
-                // future transition starts from a clean baseline. The
-                // visible result matches end-of-tween state for the dest
-                // (scale 1, original position) and resets the source's
-                // about-to-be-hidden state.
-                pivotedRect.localScale = Vector3.one;
-                pivotedRect.position = pivotedOrigPos;
-                crossfadeRect.localScale = Vector3.one;
-                crossfadeRect.position = crossfadeOrigPos;
+                // Snap both rects back to their cached resting pose. The
+                // dest reaches this naturally at the end of its tween;
+                // the source/about-to-be-hidden screen would still be
+                // mid-zoom otherwise, leaving stale state for the next
+                // transition.
+                ResetToRest(pivotedRect);
+                ResetToRest(crossfadeRect);
+                _activeSequence = null;
                 onComplete?.Invoke();
             });
 
             _activeSequence = seq;
+        }
+
+        void EnsureRestCached(RectTransform rect)
+        {
+            if (rect == null) return;
+            if (!_restPos.ContainsKey(rect))
+                _restPos[rect] = rect.position;
+            if (!_restScale.ContainsKey(rect))
+                _restScale[rect] = rect.localScale;
+        }
+
+        void ResetToRest(RectTransform rect)
+        {
+            if (rect == null) return;
+            if (_restPos.TryGetValue(rect, out var pos)) rect.position = pos;
+            if (_restScale.TryGetValue(rect, out var scale)) rect.localScale = scale;
         }
     }
 }

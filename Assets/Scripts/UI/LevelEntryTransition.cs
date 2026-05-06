@@ -85,6 +85,14 @@ namespace StarFunc.UI
 
             if (_hubCanvasGroup != null)
             {
+                // Cut interaction immediately so the (invisible mid-tween)
+                // Hub UI doesn't eat Level-scene clicks. The Level scene
+                // loads on top, but the Hub Canvas remains active in the
+                // hierarchy — without flipping these flags its
+                // GraphicRaycaster keeps swallowing pointer events.
+                _hubCanvasGroup.interactable = false;
+                _hubCanvasGroup.blocksRaycasts = false;
+
                 var alphaTween = DOTween
                     .To(() => _hubCanvasGroup.alpha,
                         v => _hubCanvasGroup.alpha = v, 0f, _duration)
@@ -127,14 +135,25 @@ namespace StarFunc.UI
 
             if (_hubCanvasGroup != null)
             {
-                var alphaTween = DOTween
-                    .To(() => _hubCanvasGroup.alpha,
-                        v => _hubCanvasGroup.alpha = v, _originalAlpha, _duration)
-                    .SetEase(_ease)
-                    .SetUpdate(true);
+                var hubGroup = _hubCanvasGroup;
+                bool driveCallbackHere = !drivesCallback;
 
-                if (!drivesCallback)
-                    alphaTween.OnComplete(() => onComplete?.Invoke());
+                var alphaTween = DOTween
+                    .To(() => hubGroup.alpha,
+                        v => hubGroup.alpha = v, _originalAlpha, _duration)
+                    .SetEase(_ease)
+                    .SetUpdate(true)
+                    // Restore raycast/interaction flags at the end of the
+                    // reverse tween — the Hub is back in focus and its
+                    // buttons should react again. (Single OnComplete call
+                    // because DOTween's OnComplete is a setter, not a
+                    // chain — a later one would overwrite this.)
+                    .OnComplete(() =>
+                    {
+                        hubGroup.interactable = true;
+                        hubGroup.blocksRaycasts = true;
+                        if (driveCallbackHere) onComplete?.Invoke();
+                    });
 
                 _alphaTween = alphaTween;
             }

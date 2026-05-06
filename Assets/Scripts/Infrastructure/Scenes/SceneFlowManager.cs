@@ -9,10 +9,35 @@ namespace StarFunc.Infrastructure
     public class SceneFlowManager : MonoBehaviour
     {
         const float LoadingOverlayDelay = 0.25f;
+        const string LevelSceneName = "Level";
 
         bool _isLevelLoaded;
 
         public LevelData CurrentLevel { get; private set; }
+
+        void OnEnable()
+        {
+            // Reset _isLevelLoaded whenever the Level scene goes away,
+            // regardless of HOW it went away (explicit UnloadLevel,
+            // Single-mode replacement via LoadScene("Hub"), etc.). This
+            // manager is DontDestroyOnLoad, so the flag would otherwise
+            // stay true forever after a Hub-via-pause exit and the next
+            // LoadLevel call would early-return on its very first line.
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        void OnDisable()
+        {
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        }
+
+        void OnSceneUnloaded(Scene scene)
+        {
+            if (scene.name != LevelSceneName) return;
+            _isLevelLoaded = false;
+            CurrentLevel = null;
+            LevelData.ActiveLevel = null;
+        }
 
         /// <summary>
         /// Loads Level scene additively on top of Hub and hides Hub UI.

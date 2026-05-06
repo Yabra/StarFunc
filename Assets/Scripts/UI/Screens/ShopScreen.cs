@@ -27,6 +27,12 @@ namespace StarFunc.UI
         [Header("Category Tabs")]
         [SerializeField] CategoryTab[] _categoryTabs;
         [SerializeField] string _defaultCategory = "Hints";
+        [Tooltip("Colour applied to the active tab's button graphic. The " +
+                 "button's ColorBlock should leave normalColor at white so " +
+                 "the multiplied tint matches this exactly.")]
+        [SerializeField] Color _activeTabColor = new(0.95f, 0.55f, 0.3f);
+        [Tooltip("Colour applied to inactive tabs' button graphics.")]
+        [SerializeField] Color _inactiveTabColor = Color.white;
 
         IShopService _shop;
         IEconomyService _economy;
@@ -86,10 +92,22 @@ namespace StarFunc.UI
             if (_categoryTabs == null) return;
             foreach (var tab in _categoryTabs)
             {
-                if (tab.HighlightTarget == null) continue;
                 bool selected = string.Equals(tab.CategoryId, _currentCategory,
                                               StringComparison.OrdinalIgnoreCase);
-                tab.HighlightTarget.SetActive(selected);
+
+                if (tab.HighlightTarget != null)
+                    tab.HighlightTarget.SetActive(selected);
+
+                // Tint the button's targetGraphic so the active tab reads
+                // as the accent colour and the others fade back. Buttons
+                // tint via ColorBlock multiplication, so leaving the
+                // ColorBlock's normalColor at white keeps our colour exact.
+                if (tab.Button != null && tab.Button.targetGraphic != null)
+                {
+                    tab.Button.targetGraphic.color = selected
+                        ? _activeTabColor
+                        : _inactiveTabColor;
+                }
             }
         }
 
@@ -108,7 +126,7 @@ namespace StarFunc.UI
             {
                 var widget = Instantiate(_itemWidgetPrefab, _itemContainer);
                 widget.gameObject.SetActive(true);
-                widget.Setup(items[i], _shop);
+                widget.Setup(items[i], _shop, _economy, OnInsufficientFunds);
                 _activeWidgets.Add(widget);
             }
 
@@ -151,6 +169,12 @@ namespace StarFunc.UI
         }
 
         void OnItemPurchased(ShopItemDto _) => Refresh();
+
+        void OnInsufficientFunds()
+        {
+            if (_fragmentsDisplay != null)
+                _fragmentsDisplay.PlayInsufficientShake();
+        }
 
         void OnCloseClicked()
         {

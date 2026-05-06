@@ -34,59 +34,5 @@
         "price": 40,
         "isConsumable": true,
         "quantity": 1
-    },
-    {
-        "itemId": "skip_level",
-        "displayName": "Пропуск уровня",
-        "description": "Пропустить текущий уровень и перейти к следующему",
-        "category": "Skip",
-        "price": 100,
-        "isConsumable": true,
-        "quantity": 1
-    },
-    {
-        "itemId": "skin_neon_ghost",
-        "displayName": "Неоновый призрак",
-        "description": "Светящиеся неоновые звёзды и следы на координатной плоскости",
-        "category": "Customization",
-        "price": 200,
-        "isConsumable": false,
-        "quantity": null
-    },
-    {
-        "itemId": "skin_pixel_retro",
-        "displayName": "Пиксельное ретро",
-        "description": "Ретро-пиксельный стиль звёзд и сетки в духе 8-бит",
-        "category": "Customization",
-        "price": 200,
-        "isConsumable": false,
-        "quantity": null
-    },
-    {
-        "itemId": "theme_dark_grid",
-        "displayName": "Тёмная сетка",
-        "description": "Тёмная тема координатной плоскости с контрастной сеткой",
-        "category": "Customization",
-        "price": 150,
-        "isConsumable": false,
-        "quantity": null
-    },
-    {
-        "itemId": "theme_ocean_blue",
-        "displayName": "Океанская глубина",
-        "description": "Сине-голубая тема с волновыми эффектами на плоскости",
-        "category": "Customization",
-        "price": 150,
-        "isConsumable": false,
-        "quantity": null
-    },
-    {
-        "itemId": "theme_sunset_warm",
-        "displayName": "Тёплый закат",
-        "description": "Тёплые оранжево-красные тона с мягким свечением звёзд",
-        "category": "Customization",
-        "price": 150,
-        "isConsumable": false,
-        "quantity": null
     }
 ]

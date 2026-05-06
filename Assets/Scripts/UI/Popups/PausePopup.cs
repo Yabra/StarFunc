@@ -1,5 +1,6 @@
 using StarFunc.Core;
 using StarFunc.Data;
+using StarFunc.Gameplay;
 using StarFunc.Infrastructure;
 using StarFunc.Meta;
 using UnityEngine;
@@ -8,9 +9,11 @@ using UnityEngine.UI;
 namespace StarFunc.UI
 {
     /// <summary>
-    /// Mid-level pause popup. Pauses <see cref="ITimerService"/> on Show, resumes
-    /// it on "Continue", or stops it and returns to Hub on "Exit".
-    /// "Settings" is a stub until Task 4.x adds <c>SettingsPopup</c>.
+    /// Mid-level pause popup. Pauses both the meta <see cref="ITimerService"/>
+    /// and the gameplay <see cref="LevelTimer"/> on Show, resumes them on
+    /// "Continue", or stops them and returns to Hub on "Exit". The two
+    /// timers are independent — TimerService is the meta-level wall-clock
+    /// (analytics / cross-screen), LevelTimer is what the HUD reads.
     /// </summary>
     public class PausePopup : UIPopup
     {
@@ -22,6 +25,7 @@ namespace StarFunc.UI
         ITimerService _timer;
         SceneFlowManager _sceneFlow;
         IUIService _ui;
+        LevelController _levelController;
 
         void Awake()
         {
@@ -42,6 +46,7 @@ namespace StarFunc.UI
             base.Show(data);
             ResolveServices();
             _timer?.PauseTimer();
+            _levelController?.Timer?.Pause();
         }
 
         /// <summary>Show without PopupData — buttons drive everything.</summary>
@@ -55,22 +60,50 @@ namespace StarFunc.UI
                 _sceneFlow = ServiceLocator.Get<SceneFlowManager>();
             if (_ui == null && ServiceLocator.Contains<IUIService>())
                 _ui = ServiceLocator.Get<IUIService>();
+            // LevelController isn't a registered service — it lives in the
+            // current Level scene, so resolve it via Find. Cached after the
+            // first hit so subsequent pauses are O(1).
+            if (_levelController == null)
+                _levelController = FindAnyObjectByType<LevelController>(FindObjectsInactive.Include);
         }
 
         void OnContinue()
         {
             _timer?.ResumeTimer();
+            _levelController?.Timer?.Resume();
             Hide();
         }
 
         void OnSettings()
         {
-            _ui?.ShowPopup<SettingsPopup>(null);
+            if (_ui == null) return;
+
+            var settings = _ui.GetPopup<SettingsPopup>();
+            if (settings == null)
+            {
+                Debug.LogWarning("[PausePopup] SettingsPopup not found.");
+                return;
+            }
+
+            // Step out of the way while Settings is shown, then come back
+            // once it closes. Subscribing once via a self-unsubscribing
+            // local handler keeps the lifecycle clean — no leaked listeners
+            // if the player opens Settings again later.
+            void HandleSettingsClosed()
+            {
+                settings.OnHidden -= HandleSettingsClosed;
+                Show();
+            }
+
+            settings.OnHidden += HandleSettingsClosed;
+            Hide();
+            _ui.ShowPopup<SettingsPopup>(null);
         }
 
         void OnHub()
         {
             _timer?.StopTimer();
+            _levelController?.Timer?.Stop();
             Hide();
             _sceneFlow?.LoadScene("Hub");
         }

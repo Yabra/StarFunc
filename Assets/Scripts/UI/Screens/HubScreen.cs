@@ -152,12 +152,28 @@ namespace StarFunc.UI
                 var sector = _sectors[i];
                 var state = _progression.GetSectorState(sector.SectorId);
                 int stars = _progression.GetSectorStars(sector.SectorId);
+                CountSectorProgress(sector, out int completed, out int total);
 
-                _sectorNodes[i].Setup(sector, state, stars);
+                _sectorNodes[i].Setup(sector, state, stars, completed, total);
 
                 bool showBadge = _notifications != null
                                  && _notifications.HasNewContent(sector.SectorId);
                 _sectorNodes[i].SetBadge(showBadge);
+            }
+        }
+
+        void CountSectorProgress(SectorData sector, out int completed, out int total)
+        {
+            completed = 0;
+            total = 0;
+            if (sector?.Levels == null) return;
+
+            total = sector.Levels.Length;
+            for (int i = 0; i < sector.Levels.Length; i++)
+            {
+                var level = sector.Levels[i];
+                if (level != null && _progression.IsLevelCompleted(level.LevelId))
+                    completed++;
             }
         }
 
@@ -200,9 +216,15 @@ namespace StarFunc.UI
 
                 var line = go.GetComponent<BezierUILine>();
                 line.Thickness = _connectionThickness;
-                line.CurveOffset = (i % 2 == 0 ? 1f : -1f) * _connectionCurve;
-                line.SetEndpoints(LocalPos(a.transform, container),
-                                  LocalPos(b.transform, container));
+                // Hub uses a uniform bend direction (unlike the level path's
+                // zigzag) — sectors are spaced freely by designers, so an
+                // alternating curve looks chaotic instead of snaking.
+                line.CurveOffset = _connectionCurve;
+                // Anchor on each node's LineAnchorTransform — a designer-
+                // placed empty child (SectorLineAnchor) marking exactly
+                // where the curve should meet the node's silhouette.
+                line.SetEndpoints(LocalPos(a.LineAnchorTransform, container),
+                                  LocalPos(b.LineAnchorTransform, container));
 
                 // Render behind the sector nodes so the bezier reads as a
                 // background path, not an overlay.

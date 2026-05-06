@@ -15,8 +15,8 @@ MonoBehaviour:
   LevelId: sector_4_level_09
   LevelIndex: 9
   Type: 1
-  PlaneMin: {x: -5, y: -5}
-  PlaneMax: {x: 5, y: 5}
+  PlaneMin: {x: -20, y: -20}
+  PlaneMax: {x: 20, y: 20}
   GridStep: 1
   Stars:
   - StarId: s4_l09_star_1

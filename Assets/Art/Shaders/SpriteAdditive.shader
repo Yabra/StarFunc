@@ -5,6 +5,19 @@ Shader "StarFunc/SpriteAdditive"
         _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,0.4)
         _BlurStrength ("Blur Strength (texels)", Range(0,16)) = 4
+
+        // UI Mask / RectMask2D writes these on every Graphic inside its
+        // hierarchy. Declaring them silences the per-frame "doesn't have
+        // _Stencil property" warning when this material lands on an Image
+        // inside a ScrollRect. Values are unused by the additive pass below
+        // — we only need the slots to exist on the material.
+        _Stencil ("Stencil ID", Float) = 0
+        _StencilComp ("Stencil Comparison", Float) = 8
+        _StencilOp ("Stencil Operation", Float) = 0
+        _StencilWriteMask ("Stencil Write Mask", Float) = 255
+        _StencilReadMask ("Stencil Read Mask", Float) = 255
+        _ColorMask ("Color Mask", Float) = 15
+        _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
     }
 
     SubShader

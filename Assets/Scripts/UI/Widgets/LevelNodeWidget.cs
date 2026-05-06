@@ -18,6 +18,7 @@ namespace StarFunc.UI
         [Header("Visual")]
         [SerializeField] TMP_Text _levelNumberText;
         [SerializeField] Image _nodeIcon;
+        [SerializeField] Image _nodeGlowingIcon;
         [SerializeField] Image[] _starImages;
         [SerializeField] Sprite _starFilled;
         [SerializeField] Sprite _starEmpty;
@@ -101,12 +102,27 @@ namespace StarFunc.UI
                 };
             }
 
+            if (_nodeGlowingIcon)
+            {
+                _nodeGlowingIcon.color = state switch
+                {
+                    LevelNodeState.Locked => _lockedColor,
+                    LevelNodeState.Available => _availableColor,
+                    LevelNodeState.Completed => _completedColor,
+                    _ => _availableColor
+                };
+            }
+
             UpdateStars(state == LevelNodeState.Completed ? bestStars : 0);
 
             if (_levelNumberText)
-                _levelNumberText.color = state == LevelNodeState.Locked
-                    ? new Color(1f, 1f, 1f, 0.3f)
-                    : Color.white;
+            {
+                // Locked levels swap the number out for the lock overlay,
+                // so hide the text entirely. Available/Completed show the
+                // number at full brightness.
+                _levelNumberText.gameObject.SetActive(state != LevelNodeState.Locked);
+                _levelNumberText.color = Color.white;
+            }
         }
 
         void UpdateStars(int count)

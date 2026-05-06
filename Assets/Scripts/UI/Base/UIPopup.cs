@@ -1,3 +1,4 @@
+using System;
 using StarFunc.Data;
 using UnityEngine;
 
@@ -9,6 +10,13 @@ namespace StarFunc.UI
         [SerializeField] GameObject _dimBackground;
 
         public bool IsVisible => gameObject.activeSelf;
+
+        /// <summary>
+        /// Fires after <see cref="Hide"/> finishes. Used by callers that
+        /// stack popups (e.g. PausePopup hides itself while SettingsPopup
+        /// is up, then re-shows once SettingsPopup closes).
+        /// </summary>
+        public event Action OnHidden;
 
         public virtual void Show(PopupData data)
         {
@@ -38,6 +46,7 @@ namespace StarFunc.UI
                 _dimBackground.SetActive(false);
 
             gameObject.SetActive(false);
+            OnHidden?.Invoke();
         }
     }
 }

@@ -18,16 +18,39 @@ namespace StarFunc.UI
         [SerializeField] GameObject _notificationBadge;
         [SerializeField] TMP_Text _sectorNameText;
         [SerializeField] TMP_Text _starsText;
+        [Tooltip("Stars-glyph image that sits next to _starsText. Hidden " +
+                 "automatically when _starsText is empty/disabled — locked " +
+                 "sectors blank the count, and we don't want a lonely icon " +
+                 "floating next to nothing.")]
+        [SerializeField] GameObject _starsIcon;
+        [Tooltip("Empty child Transform (SectorLineAnchor) marking where " +
+                 "hub bezier connections should attach. Designers position " +
+                 "this point per-sector so the curves meet exactly where " +
+                 "the art demands. Falls back to the sector icon, then to " +
+                 "the SectorNode root if not assigned.")]
+        [SerializeField] Transform _sectorLineAnchor;
 
         [Header("Interaction")]
         [SerializeField] Button _button;
 
         SectorData _sectorData;
         SectorState _state;
+        int _levelsCompleted;
+        int _levelsTotal;
         Tween _badgeTween;
 
         public event Action<SectorData> OnClicked;
         public SectorData SectorData => _sectorData;
+
+        /// <summary>
+        /// Attachment point for hub bezier connections. Resolves in this
+        /// order: explicit <see cref="_sectorLineAnchor"/> child → sector
+        /// icon (legacy fallback) → SectorNode root.
+        /// </summary>
+        public Transform LineAnchorTransform =>
+            _sectorLineAnchor != null ? _sectorLineAnchor
+            : _sectorIcon != null ? _sectorIcon.transform
+            : transform;
 
         void Awake()
         {
@@ -35,10 +58,11 @@ namespace StarFunc.UI
                 _button.onClick.AddListener(HandleClick);
         }
 
-        public void Setup(SectorData data, SectorState state, int starsCollected)
+        public void Setup(SectorData data, SectorState state, int starsCollected,
+            int levelsCompleted = 0, int levelsTotal = 0)
         {
             _sectorData = data;
-            UpdateState(state, starsCollected);
+            UpdateState(state, starsCollected, levelsCompleted, levelsTotal);
 
             if (_sectorNameText)
                 _sectorNameText.text = data.DisplayName;
@@ -51,15 +75,35 @@ namespace StarFunc.UI
             // when the sector transitions to Completed.
         }
 
-        public void UpdateState(SectorState state, int starsCollected)
+        public void UpdateState(SectorState state, int starsCollected,
+            int levelsCompleted = 0, int levelsTotal = 0)
         {
             _state = state;
+            _levelsCompleted = levelsCompleted;
+            _levelsTotal = levelsTotal;
 
             // Glyph (★) lives in a sibling Image now — text holds just the number.
             if (_starsText)
                 _starsText.text = state == SectorState.Locked ? "" : starsCollected.ToString();
 
+            UpdateStarsIcon();
             ApplyVisualState(state);
+        }
+
+        void UpdateStarsIcon()
+        {
+            if (_starsIcon == null) return;
+
+            // Show the star glyph only when the count text is going to be
+            // visible *and* contains something. Locked sectors blank the
+            // text, and a designer can also disable the text component or
+            // its GameObject — match either path.
+            bool show = _starsText != null
+                        && _starsText.gameObject.activeInHierarchy
+                        && _starsText.enabled
+                        && !string.IsNullOrEmpty(_starsText.text);
+
+            _starsIcon.SetActive(show);
         }
 
         void ApplyVisualState(SectorState state)
@@ -112,6 +156,22 @@ namespace StarFunc.UI
                     // restored constellation sits centre-stage.
                     SectorState.Completed => new Color(1f, 1f, 1f, 0f),
                     _ => Color.white
+                };
+
+                // Ring fills around the node based on level-completion
+                // progress. Locked/Available start empty; Completed shows
+                // a full ring (alpha=0 hides it visually anyway, but we
+                // still fill so a designer flipping the alpha back on can
+                // verify the state is "done"). The Image's Type must be
+                // set to Filled (Radial360 / Vertical / etc.) in the
+                // prefab for fillAmount to render.
+                _stateRing.fillAmount = state switch
+                {
+                    SectorState.Locked => 0f,
+                    SectorState.Completed => 1f,
+                    _ => _levelsTotal > 0
+                        ? Mathf.Clamp01((float)_levelsCompleted / _levelsTotal)
+                        : 0f,
                 };
             }
 

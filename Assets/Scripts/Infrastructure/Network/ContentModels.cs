@@ -226,7 +226,9 @@ namespace StarFunc.Infrastructure
         [JsonProperty("isConsumable")] public bool IsConsumable;
         [JsonProperty("quantity")] public int? Quantity;
         [JsonProperty("iconId")] public string IconId;
-        [JsonProperty("isAvailable")] public bool IsAvailable;
+        // Default true so missing JSON keys don't render the entire catalog
+        // invisible. Set explicitly to false in JSON to hide an item.
+        [JsonProperty("isAvailable")] public bool IsAvailable = true;
     }
 
     #endregion

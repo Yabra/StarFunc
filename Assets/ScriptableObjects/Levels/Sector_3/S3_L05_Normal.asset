@@ -15,8 +15,8 @@ MonoBehaviour:
   LevelId: sector_3_level_05
   LevelIndex: 5
   Type: 1
-  PlaneMin: {x: -5, y: -5}
-  PlaneMax: {x: 5, y: 10}
+  PlaneMin: {x: -20, y: -20}
+  PlaneMax: {x: 20, y: 20}
   GridStep: 1
   Stars:
   - StarId: s3_l05_star_1

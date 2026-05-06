@@ -15,8 +15,8 @@ MonoBehaviour:
   LevelId: sector_1_level_18
   LevelIndex: 18
   Type: 3
-  PlaneMin: {x: -5, y: -5}
-  PlaneMax: {x: 5, y: 5}
+  PlaneMin: {x: -20, y: -20}
+  PlaneMax: {x: 20, y: 20}
   GridStep: 1
   Stars:
   - StarId: s1_l18_star_1

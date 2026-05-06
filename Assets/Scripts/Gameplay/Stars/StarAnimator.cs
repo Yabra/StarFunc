@@ -41,10 +41,29 @@ namespace StarFunc.Gameplay
 
         Tween _activeTween;
 
-        public Coroutine PlayAppear() => StartCoroutine(AppearRoutine());
-        public Coroutine PlayPlace() => StartCoroutine(PlaceRoutine());
-        public Coroutine PlayError() => StartCoroutine(ErrorRoutine());
-        public Coroutine PlayRestore() => StartCoroutine(RestoreRoutine());
+        public Coroutine PlayAppear() => SafeStart(AppearRoutine(), nameof(PlayAppear));
+        public Coroutine PlayPlace() => SafeStart(PlaceRoutine(), nameof(PlayPlace));
+        public Coroutine PlayError() => SafeStart(ErrorRoutine(), nameof(PlayError));
+        public Coroutine PlayRestore() => SafeStart(RestoreRoutine(), nameof(PlayRestore));
+
+        /// <summary>
+        /// Wrap StartCoroutine with a guard so animation calls on inactive
+        /// stars no-op instead of throwing. Inactive happens when something
+        /// outside this component disables the star GameObject between
+        /// gameplay submitting an answer and us starting the visual flourish
+        /// — caller code only needs the side-effect (state change), the
+        /// animation is a finishing touch.
+        /// </summary>
+        Coroutine SafeStart(IEnumerator routine, string label)
+        {
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+            {
+                Debug.LogWarning(
+                    $"[StarAnimator] {label} skipped: '{name}' is inactive in hierarchy.");
+                return null;
+            }
+            return StartCoroutine(routine);
+        }
 
         IEnumerator AppearRoutine()
         {
