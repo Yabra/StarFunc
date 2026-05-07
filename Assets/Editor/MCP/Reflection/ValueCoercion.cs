@@ -89,8 +89,11 @@ namespace MCP.Reflection
 
             if (targetType.IsArray)
             {
+                var recovered = TokenShape.TryRecoverStringifiedJson(token, targetType.Name);
+                if (recovered != null) token = recovered;
+                if (!(token is JArray arr))
+                    throw new ArgumentException(TokenShape.BuildShapeError(targetType.Name, "array", token));
                 var elemType = targetType.GetElementType();
-                var arr = (JArray)token;
                 var result = Array.CreateInstance(elemType, arr.Count);
                 for (int i = 0; i < arr.Count; i++) result.SetValue(Coerce(arr[i], elemType), i);
                 return result;
@@ -98,9 +101,14 @@ namespace MCP.Reflection
 
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
             {
+                var listLabel = $"List<{targetType.GetGenericArguments()[0].Name}>";
+                var recovered = TokenShape.TryRecoverStringifiedJson(token, listLabel);
+                if (recovered != null) token = recovered;
+                if (!(token is JArray jarr))
+                    throw new ArgumentException(TokenShape.BuildShapeError(listLabel, "array", token));
                 var elemType = targetType.GetGenericArguments()[0];
                 var list = (IList)Activator.CreateInstance(targetType);
-                foreach (var t in (JArray)token) list.Add(Coerce(t, elemType));
+                foreach (var t in jarr) list.Add(Coerce(t, elemType));
                 return list;
             }
 

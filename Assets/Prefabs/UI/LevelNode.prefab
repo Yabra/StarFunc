@@ -58,7 +58,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 2100000, guid: bfc35c10ad0a46ce08fed0849a07e2f1, type: 2}
-  m_Color: {r: 0.27663735, g: 0.62482786, b: 0.26005688, a: 1}
+  m_Color: {r: 0.21568628, g: 0.48235294, b: 0.20392157, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -800,7 +800,7 @@ MonoBehaviour:
   _completedSprite: {fileID: -2135585597343286014, guid: 5aa8b770bc43046bc8d993d0d5b7f4a5, type: 3}
   _lockedColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.5}
   _availableColor: {r: 0.27058825, g: 0.23137255, b: 0.5058824, a: 1}
-  _completedColor: {r: 0.2784314, g: 0.627451, b: 0.2627451, a: 1}
+  _completedColor: {r: 0.21568628, g: 0.48235294, b: 0.20392157, a: 1}
   _button: {fileID: 8051043731457136932}
 --- !u!222 &9032811198595502823
 CanvasRenderer:
@@ -823,7 +823,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2784314, g: 0.627451, b: 0.2627451, a: 1}
+  m_Color: {r: 0.21399103, g: 0.4811321, b: 0.20198469, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

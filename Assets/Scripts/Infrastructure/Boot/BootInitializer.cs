@@ -22,6 +22,9 @@ namespace StarFunc.Infrastructure
         [Header("Events — Lives")]
         [SerializeField] IntGameEvent _onLivesChanged;
 
+        [Header("Events — Hints")]
+        [SerializeField] IntGameEvent _onHintsChanged;
+
         [Header("Events — Progression")]
         [SerializeField] SectorDataEvent _onSectorUnlocked;
         [SerializeField] SectorDataEvent _onSectorCompleted;
@@ -102,6 +105,14 @@ namespace StarFunc.Infrastructure
                 saveService, _balanceConfig, economyService, _onLivesChanged);
             ServiceLocator.Register<ILivesService>(livesService);
 
+            // Drive Tick() each frame so the auto-restore timer actually
+            // advances while the app is running (RecalculateAfterOffline only
+            // catches up across launches).
+            var livesTickerObj = new GameObject("[LivesServiceTicker]");
+            DontDestroyOnLoad(livesTickerObj);
+            var livesTicker = livesTickerObj.AddComponent<LivesServiceTicker>();
+            livesTicker.Bind(livesService);
+
             // §10.5 step 7 — TimerService
             var timerService = new TimerService();
             ServiceLocator.Register<ITimerService>(timerService);
@@ -129,7 +140,7 @@ namespace StarFunc.Infrastructure
             // backing store with a REST surface (task 4.3a). Online purchases
             // are server-authoritative; offline purchases run locally and
             // queue with cachedPrice for SyncProcessor to flush on reconnect.
-            var localShopService = new LocalShopService(contentService, economyService, saveService);
+            var localShopService = new LocalShopService(contentService, economyService, saveService, _onHintsChanged);
             var serverShopService = new ServerShopService(apiClient);
             var shopService = new HybridShopService(
                 localShopService, serverShopService,

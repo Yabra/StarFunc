@@ -21,7 +21,7 @@ namespace MCP.Tools
             ToolRegistry.Register(new ToolDescriptor
             {
                 Name = "member_invoke",
-                Description = "Read a field/property OR call a method on a Component. methodArgs[] makes it a method call. Generic methods (e.g. GameObject.GetComponent<T>()) require genericArgs: an array of type names like ['UnityEngine.Light']. For System.Type parameters, pass {\"__type\":\"FullName\"} as the methodArgs entry. Enum args accept the enum name as a string (e.g. \"Center\", \"MiddleCenter\") or its int value. Object refs can be passed as {__ref:true,instanceId:...}.",
+                Description = "Read a field/property OR call a method on a Component. methodArgs[] makes it a method call. Generic methods (e.g. GameObject.GetComponent<T>()) require genericArgs: an array of type names like ['UnityEngine.Light']. For System.Type parameters, pass {\"__type\":\"FullName\"} as the methodArgs entry. Enum args accept the enum name as a string (e.g. \"Center\", \"MiddleCenter\") or its int value. Object refs use the {__ref:true,...} envelope; for assets prefer durable forms {__ref:true,assetPath:\"Assets/...\",type:\"FullTypeName\"} or {__ref:true,guid:\"...\",type:\"FullTypeName\"} (instanceId works too but is session-scoped).",
                 InputSchema = new JObject
                 {
                     ["type"] = "object",
@@ -40,7 +40,7 @@ namespace MCP.Tools
             ToolRegistry.Register(new ToolDescriptor
             {
                 Name = "member_set",
-                Description = "Set a field/property on a Component. Supports primitives, Unity structs (Vector3/Color/etc.), enums (pass the name as a string like \"Center\" or its int value), arrays/lists, and Object references via {__ref:true,instanceId:...}.",
+                Description = "Set a field/property on a Component or any UnityEngine.Object (assets included — pass an asset ObjectRef as target). Supports primitives, Unity structs (Vector3/Color/etc.), enums (pass the name as a string like \"Center\" or its int value), arrays/lists, and Object references via the {__ref:true,...} envelope. For asset refs prefer durable forms {__ref:true,assetPath:\"Assets/...\",type:\"FullTypeName\"} or {__ref:true,guid:\"...\",type:\"FullTypeName\"}; instanceId works but is session-scoped. Sub-assets (multiple same-typed assets at one path) need globalObjectId or instanceId — assetPath+type returns the first match.",
                 InputSchema = new JObject
                 {
                     ["type"] = "object",
@@ -49,7 +49,7 @@ namespace MCP.Tools
                     {
                         ["target"] = new JObject { ["type"] = "object" },
                         ["memberName"] = new JObject { ["type"] = "string" },
-                        ["value"] = new JObject { ["description"] = "Coerced to member type. Use {__ref:true,instanceId:...} for Object refs." }
+                        ["value"] = new JObject { ["description"] = "Coerced to member type. Object refs use {__ref:true,...}; for assets prefer {assetPath:\"Assets/...\",type:\"FullTypeName\"} or {guid:\"...\",type:\"FullTypeName\"} (durable). instanceId is accepted but session-scoped." }
                     }
                 },
                 Handler = args => MainThreadDispatcher.Run(() => SetMember(args))
@@ -94,8 +94,8 @@ namespace MCP.Tools
             var memberName = (string)args["memberName"];
             if (string.IsNullOrEmpty(memberName)) throw new ArgumentException("memberName required");
 
-            var methodArgs = args["methodArgs"] as JArray;
-            var genericArgs = args["genericArgs"] as JArray;
+            var methodArgs = TokenShape.ExpectArrayOrNull(args["methodArgs"], "methodArgs");
+            var genericArgs = TokenShape.ExpectArrayOrNull(args["genericArgs"], "genericArgs");
             var resolved = MemberResolver.Resolve(target.GetType(), memberName, methodArgs);
 
             switch (resolved.Kind)
@@ -174,7 +174,7 @@ namespace MCP.Tools
 
         static JToken SetMemberBatch(JObject args)
         {
-            var items = args["items"] as JArray;
+            var items = TokenShape.ExpectArrayOrNull(args["items"], "items");
             if (items == null || items.Count == 0)
                 throw new ArgumentException("items[] required and non-empty");
 
@@ -284,7 +284,8 @@ namespace MCP.Tools
                 case SerializedPropertyType.Generic:
                     if (prop.isArray)
                     {
-                        var arr = (JArray)value;
+                        var arr = TokenShape.ExpectArrayOrNull(value, prop.propertyPath);
+                        if (arr == null) throw new ArgumentException($"Array property '{prop.propertyPath}' cannot be set to null; pass an empty array to clear.");
                         prop.arraySize = arr.Count;
                         for (int i = 0; i < arr.Count; i++)
                             ApplyToSerializedProperty(prop.GetArrayElementAtIndex(i), arr[i]);

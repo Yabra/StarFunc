@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using StarFunc.Core;
 using StarFunc.Gameplay;
 using StarFunc.Infrastructure;
+using StarFunc.Meta;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,7 +27,14 @@ namespace StarFunc.UI
         [SerializeField] Button _resetButton;
         [SerializeField] Button _hintButton;
 
+        [Header("Hints UI")]
+        [Tooltip("Number badge next to the hint button — shows paid-hint inventory.")]
+        [SerializeField] TMP_Text _hintsAmountText;
+        [Tooltip("Raised when Consumables['hints'] changes (HintSystem on use, ShopService on purchase).")]
+        [SerializeField] GameEvent<int> _onHintsChanged;
+
         bool _isPaused;
+        bool _hintsEventSubscribed;
 
         void Start()
         {
@@ -37,6 +46,7 @@ namespace StarFunc.UI
 
             InitializeWidgets();
             BindButtons();
+            InitializeHintsUI();
         }
 
         void InitializeWidgets()
@@ -44,8 +54,8 @@ namespace StarFunc.UI
             if (_timerDisplay)
                 _timerDisplay.Initialize(_levelController);
 
-            if (_livesDisplay)
-                _livesDisplay.SetLives(5);
+            // LivesDisplay self-initializes from ILivesService and listens to
+            // OnLivesChanged for updates — no need to push a hard-coded count.
 
             if (_answerPanel && _levelController.AnswerSystem)
                 _answerPanel.Initialize(_levelController.AnswerSystem);
@@ -68,15 +78,30 @@ namespace StarFunc.UI
             if (_hintButton)
             {
                 if (_hintSystem != null)
-                {
                     _hintButton.onClick.AddListener(OnHintClicked);
-                    _hintButton.interactable = true;
-                }
                 else
-                {
                     _hintButton.interactable = false;
-                }
             }
+        }
+
+        void InitializeHintsUI()
+        {
+            int initial = ServiceLocator.Contains<IShopService>()
+                ? ServiceLocator.Get<IShopService>().GetConsumableCount(LocalShopService.HintsKey)
+                : 0;
+            RefreshHintsCount(initial);
+
+            if (_onHintsChanged && !_hintsEventSubscribed)
+            {
+                _onHintsChanged.AddListener(RefreshHintsCount);
+                _hintsEventSubscribed = true;
+            }
+        }
+
+        void RefreshHintsCount(int count)
+        {
+            if (_hintsAmountText) _hintsAmountText.text = count.ToString();
+            if (_hintButton && _hintSystem != null) _hintButton.interactable = count > 0;
         }
 
         void OnHintClicked()
@@ -90,7 +115,8 @@ namespace StarFunc.UI
 
             if (_undoButton)
                 _undoButton.interactable = _levelController.ActionHistory != null
-                                           && _levelController.ActionHistory.CanUndo;
+                                           && _levelController.ActionHistory.CanUndo
+                                           && _levelController.CurrentState == LevelState.AwaitInput;
 
             if (_confirmButton)
                 _confirmButton.interactable = _levelController.AnswerSystem != null
@@ -105,15 +131,14 @@ namespace StarFunc.UI
 
         void OnUndoClicked()
         {
-            _levelController.AnswerSystem?.ResetSelection();
+            _levelController.UndoLastAction();
             TrackLevelEvent(AnalyticsEventNames.ActionUndo, includeSector: false,
                 extra: new Dictionary<string, object> { ["actionType"] = "answer_select" });
         }
 
         void OnResetClicked()
         {
-            _levelController.ActionHistory?.Reset();
-            _levelController.AnswerSystem?.ResetSelection();
+            _levelController.RestartLevel();
             TrackLevelEvent(AnalyticsEventNames.LevelReset, includeSector: true);
         }
 
@@ -157,6 +182,11 @@ namespace StarFunc.UI
             if (_resetButton) _resetButton.onClick.RemoveListener(OnResetClicked);
             if (_pauseButton) _pauseButton.onClick.RemoveListener(OnPauseClicked);
             if (_hintButton) _hintButton.onClick.RemoveListener(OnHintClicked);
+            if (_onHintsChanged && _hintsEventSubscribed)
+            {
+                _onHintsChanged.RemoveListener(RefreshHintsCount);
+                _hintsEventSubscribed = false;
+            }
         }
     }
 }

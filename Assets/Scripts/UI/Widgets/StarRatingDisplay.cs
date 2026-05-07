@@ -13,17 +13,39 @@ namespace StarFunc.UI
         [SerializeField] float _punchScale = 1.3f;
         [SerializeField] float _punchDuration = 0.2f;
 
+        int _pendingCount = -1;
+
         public void SetStars(int count, bool animate = false)
         {
             count = Mathf.Clamp(count, 0, _starImages.Length);
 
             if (animate)
             {
+                // The result screen typically activates the GameObject
+                // through a transition coroutine, so SetStars often runs
+                // while we're still inactive. StartCoroutine throws in
+                // that state — defer until OnEnable.
+                if (!isActiveAndEnabled)
+                {
+                    _pendingCount = count;
+                    ApplyStarsImmediate(0);
+                    return;
+                }
+
                 StartCoroutine(AnimateStars(count));
                 return;
             }
 
+            _pendingCount = -1;
             ApplyStarsImmediate(count);
+        }
+
+        void OnEnable()
+        {
+            if (_pendingCount < 0) return;
+            int c = _pendingCount;
+            _pendingCount = -1;
+            StartCoroutine(AnimateStars(c));
         }
 
         void ApplyStarsImmediate(int count)

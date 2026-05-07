@@ -1,4 +1,6 @@
 using DG.Tweening;
+using StarFunc.Core;
+using StarFunc.Infrastructure;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,7 +18,38 @@ namespace StarFunc.UI
         [SerializeField] Image _icon;
         [SerializeField] GameObject _notificationBadge;
 
+        [Tooltip("Optional ScriptableObject event raised whenever the lives " +
+                 "count changes. Subscribed in OnEnable for live updates; " +
+                 "leave null if you'd rather drive the widget by hand via " +
+                 "SetLives().")]
+        [SerializeField] GameEvent<int> _onLivesChanged;
+
         Tween _badgeTween;
+        bool _eventHookSubscribed;
+
+        void OnEnable()
+        {
+            // Pull the authoritative initial count from the service so the
+            // HUD doesn't display a stale or hard-coded value while we wait
+            // for the next OnLivesChanged raise.
+            if (ServiceLocator.Contains<ILivesService>())
+                SetLives(ServiceLocator.Get<ILivesService>().GetCurrentLives());
+
+            if (_onLivesChanged && !_eventHookSubscribed)
+            {
+                _onLivesChanged.AddListener(SetLives);
+                _eventHookSubscribed = true;
+            }
+        }
+
+        void OnDisable()
+        {
+            if (_onLivesChanged && _eventHookSubscribed)
+            {
+                _onLivesChanged.RemoveListener(SetLives);
+                _eventHookSubscribed = false;
+            }
+        }
 
         public void SetLives(int count)
         {

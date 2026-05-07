@@ -51,25 +51,53 @@ MonoBehaviour:
   ReferenceFunctions:
   - {fileID: 11400000, guid: 79cb61a8e53a22be7b20037e15f1ce4b, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (3, 3.5)
+  - OptionId: opt_neg4_0
+    Text: (-4, 0)
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: -4, y: 0}
     Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (3, 4)
+  - OptionId: opt_neg2_1
+    Text: (-2, 1)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: -2, y: 1}
+    Function: {fileID: 0}
+  - OptionId: opt_0_2
+    Text: (0, 2)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 0, y: 2}
+    Function: {fileID: 0}
+  - OptionId: opt_2_3
+    Text: (2, 3)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 2, y: 3}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_0_neg4
+    Text: (0, -4)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: -4}
     Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (4, 3.5)
+  - OptionId: opt_dist_1_neg2
+    Text: (1, -2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 1, y: -2}
     Function: {fileID: 0}
-  - OptionId: opt_4
+  - OptionId: opt_dist_neg2_0
+    Text: (-2, 0)
+    Value: 0
+    IsCorrect: 0
+    Coordinate: {x: -2, y: 0}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_3_2
     Text: (3, 2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 3, y: 2}
     Function: {fileID: 0}
   AccuracyThreshold: 0.5
   StarRating:
@@ -87,6 +115,11 @@ MonoBehaviour:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
+  ShowHints: 1
+  Hints:
+  - Trigger: 4
+    HintText: "Возьми половину x звезды и прибавь 2 — это её y."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
   FragmentReward: 10

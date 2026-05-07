@@ -37,6 +37,7 @@ namespace StarFunc.Infrastructure
             _isLevelLoaded = false;
             CurrentLevel = null;
             LevelData.ActiveLevel = null;
+            SectorData.ActiveSector = null;
         }
 
         /// <summary>
@@ -88,9 +89,38 @@ namespace StarFunc.Infrastructure
         /// <summary>Unload the level and return to the Hub scene underneath.</summary>
         public void ReturnToHub() => UnloadLevel();
 
-        // Sector traversal isn't wired up yet, so "Next" falls back to Hub for now.
-        // Replace the body once HubScreen / SectorData navigation lands (Task 2.7).
-        public void LoadNextLevel() => UnloadLevel();
+        /// <summary>
+        /// Move to the next level in the active sector. Falls back to
+        /// <see cref="UnloadLevel"/> when there's no sector context (e.g.
+        /// direct-play) or the player just finished the final level.
+        /// Re-uses the Retry coroutine — same unload/load shape, different
+        /// target LevelData.
+        /// </summary>
+        public void LoadNextLevel()
+        {
+            if (!_isLevelLoaded || CurrentLevel == null) { UnloadLevel(); return; }
+
+            var sector = SectorData.ActiveSector;
+            if (sector == null || sector.Levels == null || sector.Levels.Length == 0)
+            {
+                UnloadLevel();
+                return;
+            }
+
+            int idx = System.Array.IndexOf(sector.Levels, CurrentLevel);
+            if (idx < 0 || idx + 1 >= sector.Levels.Length)
+            {
+                // No next level in this sector — return to Hub. Cross-sector
+                // navigation lands later.
+                UnloadLevel();
+                return;
+            }
+
+            var next = sector.Levels[idx + 1];
+            if (next == null) { UnloadLevel(); return; }
+
+            StartCoroutine(RetryLevelRoutine(next));
+        }
 
         /// <summary>
         /// Full scene replacement (used for Boot → Hub).
@@ -130,6 +160,11 @@ namespace StarFunc.Infrastructure
             var overlay = GetOverlay();
             var transition = GetTransition();
 
+            // Stash the sector before unload — OnSceneUnloaded clears
+            // SectorData.ActiveSector, which would leave the new instance
+            // sectorless mid-retry / mid-next-level.
+            var sector = SectorData.ActiveSector;
+
             yield return WaitForTransitionIn(transition);
 
             overlay?.ShowDelayed(LoadingOverlayDelay);
@@ -144,6 +179,7 @@ namespace StarFunc.Infrastructure
             _isLevelLoaded = false;
             CurrentLevel = level;
             LevelData.ActiveLevel = level;
+            SectorData.ActiveSector = sector;
 
             var load = SceneManager.LoadSceneAsync("Level", LoadSceneMode.Additive);
             while (!load.isDone)

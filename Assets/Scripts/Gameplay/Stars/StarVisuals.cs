@@ -9,6 +9,19 @@ namespace StarFunc.Gameplay
         [SerializeField] SpriteRenderer _mainSprite;
         [SerializeField] SpriteRenderer _glowSprite;
 
+        Vector3 _baseScale = Vector3.one;
+        bool _baseScaleCaptured;
+
+        void Awake()
+        {
+            // Capture authored localScale once. SetScale tweens are expressed
+            // as a scalar multiplier of this base — without it, callers that
+            // pass 1f at the end of an animation would snap the star to
+            // (1,1,1) regardless of the prefab's authored scale.
+            _baseScale = transform.localScale;
+            _baseScaleCaptured = true;
+        }
+
         public void ApplyState(StarState state)
         {
             switch (state)
@@ -87,7 +100,8 @@ namespace StarFunc.Gameplay
 
         public void SetScale(float scale)
         {
-            transform.localScale = Vector3.one * scale;
+            if (!_baseScaleCaptured) _baseScale = transform.localScale;
+            transform.localScale = _baseScale * scale;
         }
     }
 }

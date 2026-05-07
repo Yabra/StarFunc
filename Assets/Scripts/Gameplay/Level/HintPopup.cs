@@ -37,6 +37,7 @@ namespace StarFunc.Gameplay
 
         Coroutine _hideRoutine;
         bool _mandatory;
+        float _dismissibleAfter;
 
         public bool IsVisible => gameObject.activeSelf;
 
@@ -45,7 +46,18 @@ namespace StarFunc.Gameplay
 
         void Awake()
         {
-            HideInternal(invokeEvent: false);
+            // Initialise visual state without deactivating the GameObject:
+            // SetActive(false) here would re-trigger inside the first Show()
+            // (Awake fires when an inactive popup is activated by Show), and
+            // the popup would end up off despite Show running through.
+            if (_canvasGroup)
+            {
+                _canvasGroup.alpha = 0f;
+                _canvasGroup.interactable = false;
+                _canvasGroup.blocksRaycasts = false;
+            }
+            if (_maskRoot) _maskRoot.SetActive(false);
+            if (_continueLabel) _continueLabel.SetActive(false);
         }
 
         /// <summary>
@@ -57,9 +69,19 @@ namespace StarFunc.Gameplay
         /// mask cutout is enabled.
         /// </summary>
         public void Show(string text, Vector2 highlightCanvasPos, float timeout = -1f,
-            bool mandatory = false)
+            bool mandatory = false, float minDisplayTime = 0f,
+            Vector2 highlightSizeOverride = default)
         {
+            // Activate the popup root first. On the very first Show this also
+            // fires Awake(), which initialises canvas-group / mask / continue
+            // state — we then override that state below. Doing SetActive(true)
+            // *after* ApplyMask would let Awake clobber the mask-active flag.
+            gameObject.SetActive(true);
+
             _mandatory = mandatory;
+            _dismissibleAfter = minDisplayTime > 0f
+                ? Time.unscaledTime + minDisplayTime
+                : 0f;
 
             if (_text) _text.text = text ?? string.Empty;
 
@@ -67,14 +89,18 @@ namespace StarFunc.Gameplay
             if (_highlight)
             {
                 _highlight.gameObject.SetActive(hasHighlight);
-                if (hasHighlight) _highlight.anchoredPosition = highlightCanvasPos;
+                if (hasHighlight) PlaceAtCanvasPos(_highlight, highlightCanvasPos);
             }
 
-            ApplyMask(mandatory, highlightCanvasPos, hasHighlight);
+            Vector2 effectiveSize = highlightSizeOverride.x > 0f && highlightSizeOverride.y > 0f
+                ? highlightSizeOverride
+                : _highlightSize;
+            ApplyMask(mandatory, highlightCanvasPos, hasHighlight, effectiveSize);
+
+            ApplyHighlightSize(effectiveSize);
 
             if (_continueLabel) _continueLabel.SetActive(mandatory);
 
-            gameObject.SetActive(true);
             if (_canvasGroup)
             {
                 _canvasGroup.alpha = 1f;
@@ -90,7 +116,19 @@ namespace StarFunc.Gameplay
 
         public void Hide() => HideInternal(invokeEvent: true);
 
-        public void OnPointerClick(PointerEventData eventData) => Hide();
+        /// <summary>
+        /// Dismiss-on-tap entry point used by both the popup itself and the
+        /// surrounding mask click-catcher. Respects the grace period set on
+        /// <see cref="Show"/> so reflex taps right after a hint pops up don't
+        /// kill it before the player can read.
+        /// </summary>
+        public void TryDismiss()
+        {
+            if (Time.unscaledTime < _dismissibleAfter) return;
+            Hide();
+        }
+
+        public void OnPointerClick(PointerEventData eventData) => TryDismiss();
 
         void HideInternal(bool invokeEvent)
         {
@@ -130,7 +168,7 @@ namespace StarFunc.Gameplay
         // Mask cutout — 4 dim panels framing the highlight rect
         // =====================================================================
 
-        void ApplyMask(bool mandatory, Vector2 center, bool hasHighlight)
+        void ApplyMask(bool mandatory, Vector2 center, bool hasHighlight, Vector2 holeSize)
         {
             if (_maskRoot == null) return;
 
@@ -152,8 +190,8 @@ namespace StarFunc.Gameplay
             float W = parentRT.rect.width;
             float H = parentRT.rect.height;
 
-            float halfW = _highlightSize.x * 0.5f;
-            float halfH = _highlightSize.y * 0.5f;
+            float halfW = holeSize.x * 0.5f;
+            float halfH = holeSize.y * 0.5f;
 
             float left = center.x - halfW;
             float right = center.x + halfW;
@@ -174,11 +212,17 @@ namespace StarFunc.Gameplay
 
             SetPanel(_maskLeft,
                 x: (left + canvasLeft) * 0.5f, y: center.y,
-                w: Mathf.Max(0f, left - canvasLeft), h: _highlightSize.y);
+                w: Mathf.Max(0f, left - canvasLeft), h: holeSize.y);
 
             SetPanel(_maskRight,
                 x: (right + canvasRight) * 0.5f, y: center.y,
-                w: Mathf.Max(0f, canvasRight - right), h: _highlightSize.y);
+                w: Mathf.Max(0f, canvasRight - right), h: holeSize.y);
+        }
+
+        void ApplyHighlightSize(Vector2 size)
+        {
+            if (_highlight == null) return;
+            _highlight.sizeDelta = size;
         }
 
         static void SetPanel(RectTransform panel, float x, float y, float w, float h)
@@ -188,6 +232,45 @@ namespace StarFunc.Gameplay
             panel.pivot = new Vector2(0.5f, 0.5f);
             panel.anchoredPosition = new Vector2(x, y);
             panel.sizeDelta = new Vector2(w, h);
+        }
+
+        /// <summary>
+        /// Convert a canvas-centered position (the same space the mask hole uses)
+        /// into the marker's local anchoredPosition, regardless of where the
+        /// marker is parented in the canvas hierarchy.
+        /// </summary>
+        static void PlaceAtCanvasPos(RectTransform target, Vector2 canvasPos)
+        {
+            var canvas = target.GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                target.anchoredPosition = canvasPos;
+                return;
+            }
+
+            var canvasRT = canvas.transform as RectTransform;
+            var parentRT = target.parent as RectTransform;
+            if (canvasRT == null || parentRT == null)
+            {
+                target.anchoredPosition = canvasPos;
+                return;
+            }
+
+            // Canvas-centered → world (TransformPoint treats local pos as canvas-centered
+            // because the canvas RT is centered on its own origin) → parent-local.
+            Vector3 world = canvasRT.TransformPoint(new Vector3(canvasPos.x, canvasPos.y, 0f));
+            Vector3 local = parentRT.InverseTransformPoint(world);
+
+            // anchoredPosition is relative to the anchor point, while local-position
+            // is relative to the parent's pivot. anchoredPosition = local - (anchor
+            // - parentPivot) * parentRect.size — using parentRT.pivot, not 0.5,
+            // because pivot != centre on most rects (HintPopup is top-pivoted).
+            Vector2 anchorMid = (target.anchorMin + target.anchorMax) * 0.5f;
+            Vector2 anchorOffset = new(
+                (anchorMid.x - parentRT.pivot.x) * parentRT.rect.width,
+                (anchorMid.y - parentRT.pivot.y) * parentRT.rect.height);
+
+            target.anchoredPosition = new Vector2(local.x, local.y) - anchorOffset;
         }
     }
 }

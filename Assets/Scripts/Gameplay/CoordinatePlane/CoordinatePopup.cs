@@ -15,6 +15,7 @@ namespace StarFunc.Gameplay
     {
         [Header("References")]
         [SerializeField] TouchInputHandler _input;
+        [SerializeField] StarManager _starManager;
         [SerializeField] CoordinatePlane _plane;
         [Tooltip("World-space TextMeshPro that displays the coordinate text.")]
         [SerializeField] TMP_Text _text;
@@ -66,11 +67,13 @@ namespace StarFunc.Gameplay
         void OnEnable()
         {
             if (_input != null) _input.OnPlaneClicked += HandleClick;
+            if (_starManager != null) _starManager.OnStarTapped += HandleStarTapped;
         }
 
         void OnDisable()
         {
             if (_input != null) _input.OnPlaneClicked -= HandleClick;
+            if (_starManager != null) _starManager.OnStarTapped -= HandleStarTapped;
             if (_hideRoutine != null)
             {
                 StopCoroutine(_hideRoutine);
@@ -78,7 +81,11 @@ namespace StarFunc.Gameplay
             }
         }
 
-        void HandleClick(Vector2 planePos)
+        void HandleClick(Vector2 planePos) => ShowAt(planePos);
+
+        void HandleStarTapped(StarEntity star) => ShowAt(star.GetCoordinate());
+
+        void ShowAt(Vector2 planePos)
         {
             if (_text == null || _plane == null) return;
 

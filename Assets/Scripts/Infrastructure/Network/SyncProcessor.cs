@@ -186,8 +186,8 @@ namespace StarFunc.Infrastructure
 
             try
             {
+                if (!_saveService.HasSave()) return;
                 var save = _saveService.Load();
-                if (save == null) return;
 
                 var saveResult = await _cloudSaveClient.SaveToCloud(save, save.Version);
 

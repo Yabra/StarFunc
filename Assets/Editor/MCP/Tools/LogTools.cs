@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MCP.Protocol;
+using MCP.Reflection;
 using MCP.Server;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
@@ -80,7 +81,8 @@ namespace MCP.Tools
         static JToken GetLogs(JObject args)
         {
             HashSet<LogType> levelFilter = null;
-            if (args["levels"] is JArray levelsArr && levelsArr.Count > 0)
+            var levelsArr = TokenShape.ExpectArrayOrNull(args["levels"], "levels");
+            if (levelsArr != null && levelsArr.Count > 0)
             {
                 levelFilter = new HashSet<LogType>();
                 foreach (var t in levelsArr)

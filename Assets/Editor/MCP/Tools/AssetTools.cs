@@ -187,7 +187,7 @@ namespace MCP.Tools
             ToolRegistry.Register(new ToolDescriptor
             {
                 Name = "assets_save",
-                Description = "Flush all unsaved asset edits to disk. Wraps AssetDatabase.SaveAssets.",
+                Description = "Flush all unsaved asset edits to disk. Wraps AssetDatabase.SaveAssets. Returns {ok, count, savedPaths[]} — savedPaths lists exactly which assets Unity wrote (captured via AssetModificationProcessor.OnWillSaveAssets).",
                 InputSchema = new JObject { ["type"] = "object", ["properties"] = new JObject() },
                 Handler = _ => MainThreadDispatcher.Run(() => SaveAssets())
             });
@@ -394,7 +394,8 @@ namespace MCP.Tools
 
             var changed = new JArray();
 
-            if (args["labels"] is JArray labelsArr)
+            var labelsArr = TokenShape.ExpectArrayOrNull(args["labels"], "labels");
+            if (labelsArr != null)
             {
                 var labels = labelsArr.Select(t => (string)t).Where(s => s != null).ToArray();
                 var main = AssetDatabase.LoadMainAssetAtPath(path);
@@ -632,8 +633,15 @@ namespace MCP.Tools
 
         static JToken SaveAssets()
         {
-            AssetDatabase.SaveAssets();
-            return new JObject { ["ok"] = true };
+            var saved = AssetSaveTracker.Capture(() => AssetDatabase.SaveAssets());
+            var arr = new JArray();
+            foreach (var p in saved) arr.Add(p);
+            return new JObject
+            {
+                ["ok"] = true,
+                ["count"] = saved.Count,
+                ["savedPaths"] = arr
+            };
         }
 
         // ---- assets_find ----
@@ -651,7 +659,8 @@ namespace MCP.Tools
                 throw new ArgumentException("Provide filter or typeName");
 
             string[] searchFolders = null;
-            if (args["searchInFolders"] is JArray sf && sf.Count > 0)
+            var sf = TokenShape.ExpectArrayOrNull(args["searchInFolders"], "searchInFolders");
+            if (sf != null && sf.Count > 0)
             {
                 var list = new System.Collections.Generic.List<string>(sf.Count);
                 foreach (var t in sf)

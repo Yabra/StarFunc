@@ -313,22 +313,29 @@ namespace MCP.Tools
             if (hasTransform)
             {
                 Undo.RecordObject(go.transform, "Set Transform");
-                if (args["position"] is JObject pos)
+                var pos = TokenShape.ExpectObjectOrNull(args["position"], "position");
+                if (pos != null)
                 {
                     var v = (Vector3)ValueCoercion.Coerce(pos, typeof(Vector3));
                     if (local) go.transform.localPosition = v; else go.transform.position = v;
                 }
-                if (args["rotation"] is JObject rot)
+                var rot = TokenShape.ExpectObjectOrNull(args["rotation"], "rotation");
+                if (rot != null)
                 {
                     var q = (Quaternion)ValueCoercion.Coerce(rot, typeof(Quaternion));
                     if (local) go.transform.localRotation = q; else go.transform.rotation = q;
                 }
-                else if (args["eulerAngles"] is JObject ea)
+                else
                 {
-                    var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
-                    if (local) go.transform.localEulerAngles = v; else go.transform.eulerAngles = v;
+                    var ea = TokenShape.ExpectObjectOrNull(args["eulerAngles"], "eulerAngles");
+                    if (ea != null)
+                    {
+                        var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
+                        if (local) go.transform.localEulerAngles = v; else go.transform.eulerAngles = v;
+                    }
                 }
-                if (args["localScale"] is JObject sc)
+                var sc = TokenShape.ExpectObjectOrNull(args["localScale"], "localScale");
+                if (sc != null)
                     go.transform.localScale = (Vector3)ValueCoercion.Coerce(sc, typeof(Vector3));
                 if (args["siblingIndex"] is JValue si)
                     go.transform.SetSiblingIndex((int)si);
@@ -390,22 +397,29 @@ namespace MCP.Tools
 
             bool local = args["isLocalSpace"] == null || (bool)args["isLocalSpace"];
             Undo.RecordObject(go.transform, "Set Transform " + name);
-            if (args["position"] is JObject pos)
+            var pos = TokenShape.ExpectObjectOrNull(args["position"], "position");
+            if (pos != null)
             {
                 var v = (Vector3)ValueCoercion.Coerce(pos, typeof(Vector3));
                 if (local) go.transform.localPosition = v; else go.transform.position = v;
             }
-            if (args["rotation"] is JObject rot)
+            var rot = TokenShape.ExpectObjectOrNull(args["rotation"], "rotation");
+            if (rot != null)
             {
                 var q = (Quaternion)ValueCoercion.Coerce(rot, typeof(Quaternion));
                 if (local) go.transform.localRotation = q; else go.transform.rotation = q;
             }
-            else if (args["eulerAngles"] is JObject ea)
+            else
             {
-                var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
-                if (local) go.transform.localEulerAngles = v; else go.transform.eulerAngles = v;
+                var ea = TokenShape.ExpectObjectOrNull(args["eulerAngles"], "eulerAngles");
+                if (ea != null)
+                {
+                    var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
+                    if (local) go.transform.localEulerAngles = v; else go.transform.eulerAngles = v;
+                }
             }
-            if (args["localScale"] is JObject sc)
+            var sc = TokenShape.ExpectObjectOrNull(args["localScale"], "localScale");
+            if (sc != null)
                 go.transform.localScale = (Vector3)ValueCoercion.Coerce(sc, typeof(Vector3));
 
             EditorSceneManager.MarkSceneDirty(go.scene);

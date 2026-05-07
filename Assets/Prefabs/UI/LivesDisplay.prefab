@@ -81,6 +81,7 @@ MonoBehaviour:
   _livesText: {fileID: 6344303114360405420}
   _icon: {fileID: 0}
   _notificationBadge: {fileID: 0}
+  _onLivesChanged: {fileID: 11400000, guid: afdaa9de2dd31f87186b40c4b9b11085, type: 2}
 --- !u!1 &45154875600570533
 GameObject:
   m_ObjectHideFlags: 0

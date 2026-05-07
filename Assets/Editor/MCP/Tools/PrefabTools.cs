@@ -300,22 +300,29 @@ namespace MCP.Tools
 
             bool local = args["isLocalSpace"] == null || (bool)args["isLocalSpace"];
             Undo.RecordObject(instance.transform, "Set Transform " + prefab.name);
-            if (args["position"] is JObject pos)
+            var pos = TokenShape.ExpectObjectOrNull(args["position"], "position");
+            if (pos != null)
             {
                 var v = (Vector3)ValueCoercion.Coerce(pos, typeof(Vector3));
                 if (local) instance.transform.localPosition = v; else instance.transform.position = v;
             }
-            if (args["rotation"] is JObject rot)
+            var rot = TokenShape.ExpectObjectOrNull(args["rotation"], "rotation");
+            if (rot != null)
             {
                 var q = (Quaternion)ValueCoercion.Coerce(rot, typeof(Quaternion));
                 if (local) instance.transform.localRotation = q; else instance.transform.rotation = q;
             }
-            else if (args["eulerAngles"] is JObject ea)
+            else
             {
-                var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
-                if (local) instance.transform.localEulerAngles = v; else instance.transform.eulerAngles = v;
+                var ea = TokenShape.ExpectObjectOrNull(args["eulerAngles"], "eulerAngles");
+                if (ea != null)
+                {
+                    var v = (Vector3)ValueCoercion.Coerce(ea, typeof(Vector3));
+                    if (local) instance.transform.localEulerAngles = v; else instance.transform.eulerAngles = v;
+                }
             }
-            if (args["localScale"] is JObject sc)
+            var sc = TokenShape.ExpectObjectOrNull(args["localScale"], "localScale");
+            if (sc != null)
                 instance.transform.localScale = (Vector3)ValueCoercion.Coerce(sc, typeof(Vector3));
 
             if (instance.scene.IsValid())

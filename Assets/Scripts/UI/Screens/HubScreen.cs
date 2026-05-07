@@ -326,6 +326,17 @@ namespace StarFunc.UI
 
         void OnSectorClicked(SectorData sector)
         {
+            // Alpha-test gate: only the first sector ships in this build. Tap-
+            // ping any other sector pops a "content unavailable" notice with
+            // the current app version. Remove or expand the whitelist when
+            // sectors 2..5 ship.
+            if (!IsSectorShipped(sector))
+            {
+                Debug.Log($"[HubScreen] Sector '{sector.SectorId}' not shipped in this build — showing ContentErrorPopup.");
+                _uiService?.ShowPopup<ContentErrorPopup>(null);
+                return;
+            }
+
             _notifications?.MarkSeen(INotificationService.SectorUnlockId(sector.SectorId));
             // Player is starting a level — they've implicitly acknowledged the
             // "lives are full again" notification.
@@ -494,6 +505,17 @@ namespace StarFunc.UI
 
             if (_notifications != null)
                 _notifications.OnChanged -= OnNotificationsChanged;
+        }
+
+        /// <summary>
+        /// Whitelist of sectors that ship in the current alpha build. Returns
+        /// true for the first sector only — every other tap shows the
+        /// ContentErrorPopup. Update this once sectors 2..5 are content-
+        /// complete.
+        /// </summary>
+        static bool IsSectorShipped(SectorData sector)
+        {
+            return sector != null && sector.SectorIndex == 0;
         }
     }
 }

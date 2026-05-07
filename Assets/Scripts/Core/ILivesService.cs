@@ -15,5 +15,13 @@ namespace StarFunc.Core
         bool RestoreLife();
         bool RestoreAllLives();
         float GetTimeUntilNextRestore();
+
+        /// <summary>
+        /// Deduct one life. Called by LevelController on every incorrect answer
+        /// in local-only mode. In an online-authoritative flow the server's
+        /// answer-check response would be the source of truth and this becomes
+        /// a local fallback / optimistic update.
+        /// </summary>
+        void DeductLife();
     }
 }

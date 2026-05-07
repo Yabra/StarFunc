@@ -18,7 +18,11 @@ namespace StarFunc.UI
 
         void Awake()
         {
-            if (_buttonContainer && !_buttonContainer.GetComponent<LayoutGroup>())
+            if (_buttonContainer == null) _buttonContainer = transform;
+
+            EnsureScrollSetup();
+
+            if (!_buttonContainer.GetComponent<LayoutGroup>())
             {
                 var layout = _buttonContainer.gameObject.AddComponent<VerticalLayoutGroup>();
                 layout.spacing = 12f;
@@ -27,6 +31,59 @@ namespace StarFunc.UI
                 layout.childControlWidth = true;
                 layout.childControlHeight = false;
             }
+        }
+
+        /// <summary>
+        /// Wrap the panel in a vertical ScrollRect on first run so option lists
+        /// longer than the viewport scroll instead of overflowing. Idempotent —
+        /// repeated calls (across re-imports) detect the existing setup and
+        /// no-op. The button container is reassigned to a generated "Content"
+        /// child that sizes itself via ContentSizeFitter.
+        /// </summary>
+        void EnsureScrollSetup()
+        {
+            if (GetComponent<ScrollRect>() != null) return;
+            if (transform is not RectTransform viewportRT) return;
+
+            // RectMask2D clips children to the panel rect without requiring
+            // an Image with alpha (cheaper and avoids visual side-effects).
+            if (GetComponent<RectMask2D>() == null)
+                gameObject.AddComponent<RectMask2D>();
+
+            // Reparent any pre-existing buttons under the panel onto the
+            // new Content; otherwise they'd be orphaned outside the scroll.
+            var preexisting = new List<Transform>();
+            for (int i = 0; i < transform.childCount; i++)
+                preexisting.Add(transform.GetChild(i));
+
+            var contentGO = new GameObject("Content", typeof(RectTransform));
+            var contentRT = (RectTransform)contentGO.transform;
+            contentRT.SetParent(transform, worldPositionStays: false);
+            contentRT.anchorMin = new Vector2(0f, 1f);
+            contentRT.anchorMax = new Vector2(1f, 1f);
+            contentRT.pivot = new Vector2(0.5f, 1f);
+            contentRT.anchoredPosition = Vector2.zero;
+            contentRT.sizeDelta = new Vector2(0f, 0f);
+
+            var fitter = contentGO.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            foreach (var child in preexisting)
+                child.SetParent(contentRT, worldPositionStays: false);
+
+            var scroll = gameObject.AddComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.elasticity = 0.1f;
+            scroll.inertia = true;
+            scroll.decelerationRate = 0.135f;
+            scroll.scrollSensitivity = 30f;
+            scroll.viewport = viewportRT;
+            scroll.content = contentRT;
+
+            _buttonContainer = contentRT;
         }
 
         [Header("Colors")]

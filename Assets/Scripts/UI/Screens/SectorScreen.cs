@@ -48,6 +48,10 @@ namespace StarFunc.UI
 
         [Header("Events")]
         [SerializeField] GameEvent<LevelData> _onLevelSelected;
+        [Tooltip("Fires when the player finishes a level. Refresh on this so " +
+                 "newly-unlocked next levels and updated star counts appear " +
+                 "without the player having to back out and re-enter.")]
+        [SerializeField] LevelResultEvent _onLevelCompleted;
 
         SectorData _currentSector;
         LevelNodeWidget[] _nodes;
@@ -66,6 +70,26 @@ namespace StarFunc.UI
 
             if (_backButton)
                 _backButton.onClick.AddListener(OnBackClicked);
+        }
+
+        void OnEnable()
+        {
+            if (_onLevelCompleted) _onLevelCompleted.AddListener(OnLevelCompletedRaised);
+        }
+
+        void OnDisable()
+        {
+            if (_onLevelCompleted) _onLevelCompleted.RemoveListener(OnLevelCompletedRaised);
+        }
+
+        void OnLevelCompletedRaised(LevelResult _)
+        {
+            // ProgressionService has already applied the result by this point
+            // (LevelController calls CompleteLevel before raising the event).
+            // Re-pull state so the just-finished level shows its star count
+            // and the next level transitions out of Locked.
+            if (_currentSector != null)
+                RefreshAll();
         }
 
         public void SetSector(SectorData sector)
@@ -328,6 +352,11 @@ namespace StarFunc.UI
 
         void RaiseLevelSelected(LevelData level)
         {
+            // Stash the parent sector so Level-scene code (e.g. the result
+            // screen's constellation preview) can resolve which sector this
+            // level belongs to without a per-level back-pointer.
+            SectorData.ActiveSector = _currentSector;
+
             if (_onLevelSelected)
                 _onLevelSelected.Raise(level);
         }

@@ -51,25 +51,53 @@ MonoBehaviour:
   ReferenceFunctions:
   - {fileID: 11400000, guid: 817a3b80e88b79ccd85e33523e02078f, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (2, 4)
+  - OptionId: opt_neg2_neg4
+    Text: (-2, -4)
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: -2, y: -4}
     Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (2, 5)
+  - OptionId: opt_neg1_neg2
+    Text: (-1, -2)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: -1, y: -2}
+    Function: {fileID: 0}
+  - OptionId: opt_0_0
+    Text: (0, 0)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 0}
+  - OptionId: opt_1_2
+    Text: (1, 2)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 1, y: 2}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_2_neg4
+    Text: (2, -4)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 2, y: -4}
     Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (3, 4)
+  - OptionId: opt_dist_neg4_neg2
+    Text: (-4, -2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -4, y: -2}
     Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (2, 3)
+  - OptionId: opt_dist_1_neg2
+    Text: (1, -2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 1, y: -2}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_neg1_1
+    Text: (-1, 1)
+    Value: 0
+    IsCorrect: 0
+    Coordinate: {x: -1, y: 1}
     Function: {fileID: 0}
   AccuracyThreshold: 0.5
   StarRating:
@@ -93,13 +121,15 @@ MonoBehaviour:
     HintText: "\u041E\u0431\u0440\u0430\u0442\u0438 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435
       \u043D\u0430 \u043E\u0441\u0438 X \u0438 Y \u2014 \u043E\u043D\u0438 \u0437\u0430\u0434\u0430\u044E\u0442
       \u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u044B \u0437\u0432\u0451\u0437\u0434."
-    HighlightPosition: {x: -400, y: 0}
+    HighlightPosition: {x: 0, y: 150}
+    HighlightSize: {x: 0, y: 0}
     TriggerAfterErrors: 0
   - Trigger: 1
     HintText: "\u041A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u0430 \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442\u0441\u044F
       \u043A\u0430\u043A (x, y) \u2014 \u0441\u043D\u0430\u0447\u0430\u043B\u0430
       \u043F\u043E \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442\u0430\u043B\u0438,
       \u043F\u043E\u0442\u043E\u043C \u043F\u043E \u0432\u0435\u0440\u0442\u0438\u043A\u0430\u043B\u0438."
-    HighlightPosition: {x: 0, y: 0}
+    HighlightPosition: {x: 0, y: -820}
+    HighlightSize: {x: 0, y: 0}
     TriggerAfterErrors: 1
   FragmentReward: 10

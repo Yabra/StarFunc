@@ -65,6 +65,14 @@ namespace StarFunc.Meta
             return _local.RestoreAllLives();
         }
 
+        public void DeductLife()
+        {
+            // Local-side optimistic update so the HUD reflects the deduction
+            // immediately. The server's answer-check response is the eventual
+            // source of truth and overwrites via SyncStateAsync / SetState.
+            _local.DeductLife();
+        }
+
         #endregion
 
         #region Server sync

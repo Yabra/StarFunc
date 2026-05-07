@@ -67,7 +67,7 @@ namespace MCP.Tools
             ToolRegistry.Register(new ToolDescriptor
             {
                 Name = "scene_save_all",
-                Description = "Save all open dirty scenes. Wraps EditorSceneManager.SaveOpenScenes.",
+                Description = "Save all open dirty scenes. Wraps EditorSceneManager.SaveOpenScenes. Returns {ok, count, savedPaths[], scenes[]} — savedPaths lists scenes that were dirty and got written; scenes[] is the post-save state of every loaded scene.",
                 InputSchema = new JObject { ["type"] = "object", ["properties"] = new JObject() },
                 Handler = _ => MainThreadDispatcher.Run(() => SaveAllScenes())
             });
@@ -217,14 +217,35 @@ namespace MCP.Tools
 
         static JToken SaveAllScenes()
         {
+            // Capture which scenes were dirty BEFORE saving — after SaveOpenScenes, isDirty
+            // flips to false and we lose the signal of what was actually written.
+            var savedPaths = new JArray();
+            int dirtyCount = 0;
+            for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+            {
+                var s = EditorSceneManager.GetSceneAt(i);
+                if (s.isDirty)
+                {
+                    dirtyCount++;
+                    savedPaths.Add(s.path);
+                }
+            }
+
             bool ok = EditorSceneManager.SaveOpenScenes();
+
             var arr = new JArray();
             for (int i = 0; i < EditorSceneManager.sceneCount; i++)
             {
                 var s = EditorSceneManager.GetSceneAt(i);
                 arr.Add(new JObject { ["name"] = s.name, ["path"] = s.path, ["isDirty"] = s.isDirty });
             }
-            return new JObject { ["ok"] = ok, ["scenes"] = arr };
+            return new JObject
+            {
+                ["ok"] = ok,
+                ["count"] = dirtyCount,
+                ["savedPaths"] = savedPaths,
+                ["scenes"] = arr
+            };
         }
     }
 }

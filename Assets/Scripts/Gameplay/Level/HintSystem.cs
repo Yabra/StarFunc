@@ -31,10 +31,18 @@ namespace StarFunc.Gameplay
         [Header("References")]
         [SerializeField] LevelController _levelController;
         [SerializeField] HintPopup _hintPopup;
+        [SerializeField] StarManager _starManager;
         [SerializeField] LevelDataEvent _onLevelStarted;
+        [SerializeField] AnswerDataEvent _onAnswerSelected;
+        [Tooltip("Raised when the player's paid-hint inventory changes. " +
+                 "Hub topbar HintsDisplay listens to this for live count updates.")]
+        [SerializeField] GameEvent<int> _onHintsChanged;
 
         [Header("Behaviour")]
         [SerializeField] float _autoHintTimeout = 5f;
+        [Tooltip("Grace period during which an OnLevelStart hint can't be tap-dismissed, " +
+                 "so reflex taps right after the level loads don't kill it before the player reads.")]
+        [SerializeField] float _onLevelStartMinDisplay = 1.5f;
 
         ISaveService _saveService;
         PlayerSaveData _save;
@@ -43,11 +51,14 @@ namespace StarFunc.Gameplay
 
         bool _initialized;
         bool _firstInteractionFired;
+        bool _answerSelectedFired;
         int _lastErrorCountSeen;
         bool _tutorialMode;
         readonly HashSet<int> _shownHintIndices = new();
         readonly Queue<int> _pendingMandatory = new();
         bool _hintHookSubscribed;
+        bool _starHookSubscribed;
+        bool _answerSelectedHookSubscribed;
 
         /// <summary>Fires when paid-hint inventory is empty on a UseHint() call. UI hooks this to show a shop offer.</summary>
         public event Action OnPaidHintEmpty;
@@ -78,12 +89,15 @@ namespace StarFunc.Gameplay
                 Debug.LogWarning("[HintSystem] ISaveService not registered; paid hints disabled.");
             }
 
-            // Prefer the SO event so we don't race LevelController.Start();
-            // it raises OnLevelStarted from inside Initialize(), after the
-            // controller's LevelData and AnswerSystem are populated.
+            // Subscribe for future raises (e.g. RestartLevel re-runs Initialize).
             if (_onLevelStarted)
                 _onLevelStarted.AddListener(InitializeForLevel);
-            else if (_levelController.LevelData != null)
+
+            // Race recovery: LevelController shares this GameObject and its
+            // Start() runs before ours, so by the time we get here the event
+            // may have already fired with no listeners. If the controller is
+            // already initialized, run our setup directly.
+            if (!_initialized && _levelController.LevelData != null)
                 InitializeForLevel(_levelController.LevelData);
         }
 
@@ -92,16 +106,23 @@ namespace StarFunc.Gameplay
             _levelData = data;
             _answerSystem = _levelController.AnswerSystem;
             _firstInteractionFired = false;
+            _answerSelectedFired = false;
             _lastErrorCountSeen = 0;
             _tutorialMode = data != null && data.Type == LevelType.Tutorial;
             _shownHintIndices.Clear();
             _pendingMandatory.Clear();
             _initialized = true;
 
-            if (_answerSystem != null)
+            if (_starManager != null && !_starHookSubscribed)
             {
-                _answerSystem.OnAnswerConfirmed -= HandleAnswerConfirmed;
-                _answerSystem.OnAnswerConfirmed += HandleAnswerConfirmed;
+                _starManager.OnStarTapped += HandleStarTapped;
+                _starHookSubscribed = true;
+            }
+
+            if (_onAnswerSelected != null && !_answerSelectedHookSubscribed)
+            {
+                _onAnswerSelected.AddListener(HandleAnswerSelected);
+                _answerSelectedHookSubscribed = true;
             }
 
             if (_hintPopup != null && !_hintHookSubscribed)
@@ -126,12 +147,20 @@ namespace StarFunc.Gameplay
             }
         }
 
-        void HandleAnswerConfirmed(PlayerAnswer answer)
+        void HandleStarTapped(StarEntity star)
         {
             if (_firstInteractionFired) return;
             _firstInteractionFired = true;
             if (_levelData != null && _levelData.ShowHints)
                 TryFireAutoHint(HintTrigger.OnFirstInteraction, 0);
+        }
+
+        void HandleAnswerSelected(AnswerData data)
+        {
+            if (_answerSelectedFired) return;
+            _answerSelectedFired = true;
+            if (_levelData != null && _levelData.ShowHints)
+                TryFireAutoHint(HintTrigger.OnAnswerSelected, 0);
         }
 
         void TryFireAutoHint(HintTrigger trigger, int currentErrors)
@@ -228,9 +257,15 @@ namespace StarFunc.Gameplay
             }
 
             // Consume one and persist.
-            _save.Consumables[ConsumableKey] = balance - 1;
+            int newBalance = balance - 1;
+            _save.Consumables[ConsumableKey] = newBalance;
             _save.IncrementVersion();
             _saveService?.Save(_save);
+
+            // Notify the topbar inventory widget (lives in Hub scene) so the
+            // count ticks down immediately rather than only refreshing on the
+            // next Hub return.
+            if (_onHintsChanged) _onHintsChanged.Raise(newBalance);
 
             ShowHint(_levelData.Hints[hintIndex], hintIndex, paid: true, mandatory: false);
 
@@ -261,14 +296,26 @@ namespace StarFunc.Gameplay
             }
 
             float timeout = (paid || mandatory) ? -1f : _autoHintTimeout;
-            _hintPopup.Show(hint.HintText, hint.HighlightPosition, timeout, mandatory);
+            float minDisplay = hint.Trigger == HintTrigger.OnLevelStart
+                ? _onLevelStartMinDisplay
+                : 0f;
+            _hintPopup.Show(hint.HintText, hint.HighlightPosition, timeout, mandatory,
+                minDisplay, hint.HighlightSize);
             Debug.Log($"[HintSystem] Hint #{index} shown ({(paid ? "paid" : hint.Trigger.ToString())}{(mandatory ? ", mandatory" : "")}): \"{hint.HintText}\"");
         }
 
         void OnDestroy()
         {
-            if (_answerSystem != null)
-                _answerSystem.OnAnswerConfirmed -= HandleAnswerConfirmed;
+            if (_starManager != null && _starHookSubscribed)
+            {
+                _starManager.OnStarTapped -= HandleStarTapped;
+                _starHookSubscribed = false;
+            }
+            if (_onAnswerSelected != null && _answerSelectedHookSubscribed)
+            {
+                _onAnswerSelected.RemoveListener(HandleAnswerSelected);
+                _answerSelectedHookSubscribed = false;
+            }
             if (_onLevelStarted)
                 _onLevelStarted.RemoveListener(InitializeForLevel);
             if (_hintPopup != null && _hintHookSubscribed)

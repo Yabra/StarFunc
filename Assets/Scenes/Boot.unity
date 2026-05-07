@@ -1144,6 +1144,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: acf2bb62a0e5a2575a2a848dfc680dbe, type: 2}
   _onFragmentsChanged: {fileID: 11400000, guid: 6f94e2f23a8a8a7c5beb815c93b45266, type: 2}
   _onLivesChanged: {fileID: 11400000, guid: afdaa9de2dd31f87186b40c4b9b11085, type: 2}
+  _onHintsChanged: {fileID: 11400000, guid: 27b99a57cff77a85d9334d1bdbfffe42, type: 2}
   _onSectorUnlocked: {fileID: 11400000, guid: 1db3bfaf0a1be88a48edefd916d20527, type: 2}
   _onSectorCompleted: {fileID: 11400000, guid: 755c7f52efa392631af721caeaff9122, type: 2}
 --- !u!4 &1966582820

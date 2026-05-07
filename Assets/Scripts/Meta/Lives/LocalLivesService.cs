@@ -76,10 +76,9 @@ namespace StarFunc.Meta
         }
 
         /// <summary>
-        /// Deducts one life. Called internally from LevelController on incorrect answer.
-        /// Not part of the public ILivesService contract.
+        /// Deducts one life. Called by LevelController on incorrect answer.
         /// </summary>
-        internal void DeductLife()
+        public void DeductLife()
         {
             if (_save.CurrentLives <= 0) return;
 

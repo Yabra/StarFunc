@@ -56,6 +56,11 @@ namespace MCP.Reflection
         public static Object Resolve(JToken token)
         {
             if (token == null || token.Type == JTokenType.Null) return null;
+
+            // Some clients JSON.stringify the envelope before sending. Try to recover transparently.
+            var recovered = TokenShape.TryRecoverStringifiedJson(token, "objectRef");
+            if (recovered != null) token = recovered;
+
             if (token is JValue v && v.Type == JTokenType.Integer)
                 return EntityIdUtil.Resolve(v.Value<long>());
 
@@ -137,6 +142,25 @@ namespace MCP.Reflection
             var resolved = Resolve(token);
             if (resolved != null) return resolved;
 
+            // Common client bug: the envelope was JSON.stringified somewhere upstream and
+            // arrived as a String token containing "{...}" rather than as a real JSON object.
+            // Detect and surface this directly — the generic "non-object token" message
+            // doesn't make the cause obvious.
+            if (token is JValue jv && jv.Type == JTokenType.String)
+            {
+                var s = ((string)jv ?? "").TrimStart();
+                if (s.StartsWith("{") || s.StartsWith("["))
+                {
+                    throw new System.ArgumentException(
+                        "ObjectRef value arrived as a JSON-encoded string, not a JSON object. " +
+                        $"Got: {Truncate(s, 120)}. " +
+                        "Pass {\"__ref\":true,...} (or a bare instanceId integer) as a real nested JSON value, not stringified. " +
+                        "If your client serialized the envelope with JSON.stringify or similar, remove that step.");
+                }
+                throw new System.ArgumentException(
+                    $"ObjectRef must be an object envelope ({{__ref:true,...}}) or a bare instanceId integer, got string \"{Truncate(s, 120)}\".");
+            }
+
             var summary = "(non-object token)";
             if (token is JObject jo)
             {
@@ -148,6 +172,8 @@ namespace MCP.Reflection
                 $"ObjectRef did not resolve. Tried (in order): globalObjectId, instanceId, path+sceneName, assetPath, guid. Provided fields: {summary}. " +
                 "Likely causes: stale instanceId after domain reload, mistyped path, asset moved/deleted, or unsupported envelope shape.");
         }
+
+        static string Truncate(string s, int max) => s.Length > max ? s.Substring(0, max) + "…" : s;
 
         public static string GetHierarchyPath(Transform t)
         {

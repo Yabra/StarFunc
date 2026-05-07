@@ -14,7 +14,7 @@ namespace StarFunc.Gameplay
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (_hintPopup) _hintPopup.Hide();
+            if (_hintPopup) _hintPopup.TryDismiss();
         }
     }
 }

@@ -51,25 +51,53 @@ MonoBehaviour:
   ReferenceFunctions:
   - {fileID: 11400000, guid: acead541a03b3f00488ceccd508684e2, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (1, 2)
+  - OptionId: opt_neg3_neg2
+    Text: (-3, -2)
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: -3, y: -2}
     Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (1, 3)
+  - OptionId: opt_neg2_neg1
+    Text: (-2, -1)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: -2, y: -1}
+    Function: {fileID: 0}
+  - OptionId: opt_neg1_0
+    Text: (-1, 0)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: -1, y: 0}
+    Function: {fileID: 0}
+  - OptionId: opt_0_1
+    Text: (0, 1)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 0, y: 1}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_neg3_neg1
+    Text: (-3, -1)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -3, y: -1}
     Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (2, 2)
+  - OptionId: opt_dist_neg2_0
+    Text: (-2, 0)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -2, y: 0}
     Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (1, 1)
+  - OptionId: opt_dist_neg1_1
+    Text: (-1, 1)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -1, y: 1}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_0_0
+    Text: (0, 0)
+    Value: 0
+    IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 0}
   AccuracyThreshold: 0.5
   StarRating:
@@ -87,6 +115,13 @@ MonoBehaviour:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
+  ShowHints: 1
+  Hints:
+  - Trigger: 4
+    HintText: "Звёзды лежат
+      на прямой: y всегда
+      на 1 больше x."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
   FragmentReward: 10

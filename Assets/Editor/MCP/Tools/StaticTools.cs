@@ -67,8 +67,8 @@ namespace MCP.Tools
             }
             var type = matches[0];
 
-            var methodArgs = args["methodArgs"] as JArray;
-            var genericArgs = args["genericArgs"] as JArray;
+            var methodArgs = TokenShape.ExpectArrayOrNull(args["methodArgs"], "methodArgs");
+            var genericArgs = TokenShape.ExpectArrayOrNull(args["genericArgs"], "genericArgs");
             var resolved = MemberResolver.Resolve(type, memberName, methodArgs, isStatic: true);
 
             switch (resolved.Kind)

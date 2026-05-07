@@ -60,7 +60,9 @@ namespace StarFunc.Gameplay
         LevelResultCalculator _resultCalculator;
         ActionHistory _actionHistory;
         LevelTimer _levelTimer;
+        readonly HashSet<string> _usedOptionIds = new();
         ILivesService _livesService;
+        IProgressionService _progressionService;
         ReconciliationHandler _reconciliation;
         IFeedbackService _feedback;
         IAnalyticsService _analytics;
@@ -121,11 +123,26 @@ namespace StarFunc.Gameplay
                 ? ServiceLocator.Get<IAnalyticsService>()
                 : null;
 
-            // Block entry when the player has no lives.
+            // Progression service applies the level result to player save:
+            // awards fragments, updates BestStars, advances sector unlock
+            // state. Without this nothing persists between sessions and the
+            // Hub topbar / next-level gate stays stale.
+            _progressionService = ServiceLocator.Contains<IProgressionService>()
+                ? ServiceLocator.Get<IProgressionService>()
+                : null;
+
+            // Defensive guard. Real entry points (LevelLauncher in Hub,
+            // LevelResultBinder.HandleRetry on the result screen) gate on
+            // lives before we get here, so this only fires for direct play /
+            // deeplink / save bypass. Calling SceneFlowManager.UnloadLevel()
+            // here doesn't work — during a Retry, _isLevelLoaded is briefly
+            // false while the scene reloads, so the unload would no-op. We
+            // just abort initialisation; the partially-loaded scene is a
+            // dev-only edge case fixable via the Hub button.
             if (_livesService != null && !_livesService.HasLives())
             {
-                Debug.LogWarning("[LevelController] No lives remaining — level entry blocked.");
-                FailLevel("no_lives");
+                Debug.LogWarning("[LevelController] No lives — Initialize aborted. " +
+                                 "Use the Hub-side gate (LevelLauncher) to enter levels.");
                 return;
             }
 
@@ -133,6 +150,7 @@ namespace StarFunc.Gameplay
             _resultCalculator = new LevelResultCalculator();
             _actionHistory = new ActionHistory();
             _levelTimer = new LevelTimer();
+            _usedOptionIds.Clear();
 
             SetState(LevelState.Initialize);
 
@@ -210,6 +228,96 @@ namespace StarFunc.Gameplay
         }
 
         /// <summary>
+        /// Step back one confirmed action: pop the most recent <see cref="PlayerAction"/>
+        /// and revert game state. No-op unless the level is currently awaiting input
+        /// (we don't interrupt mid-animation or post-completion).
+        /// </summary>
+        public void UndoLastAction()
+        {
+            if (_actionHistory == null || !_actionHistory.CanUndo) return;
+            if (_currentState != LevelState.AwaitInput) return;
+
+            var action = _actionHistory.Undo();
+            if (action == null) return;
+
+            bool perStar = _levelData.TaskType == TaskType.ChooseCoordinate
+                           || _levelData.TaskType == TaskType.RestoreConstellation;
+            bool wasCorrectAdvance = perStar
+                && (action.NewState == StarState.Placed.ToString()
+                    || action.NewState == StarState.Restored.ToString());
+
+            if (wasCorrectAdvance)
+            {
+                _currentStarIndex = Mathf.Max(0, _currentStarIndex - 1);
+
+                if (_levelData.GraphVisibility.PartialReveal
+                    && _levelData.GraphVisibility.RevealPerCorrectAction > 0)
+                {
+                    _visibleSegments = Mathf.Max(0,
+                        _visibleSegments - _levelData.GraphVisibility.RevealPerCorrectAction);
+                    if (_graphRenderer != null)
+                        _graphRenderer.SetComparisonVisibleSegments(_visibleSegments);
+                }
+
+                var entity = _starManager != null ? _starManager.GetStar(action.TargetId) : null;
+                if (entity != null && Enum.TryParse<StarState>(action.PreviousState, out var prev))
+                    entity.SetState(prev);
+
+                // Restore the answer option that was consumed by this action so
+                // it re-appears in the panel after ShowTask runs again. Match
+                // by coordinate: a correct ChooseCoordinate pick has the same
+                // coordinate as its star.
+                if (_levelData.TaskType == TaskType.ChooseCoordinate && _levelData.AnswerOptions != null)
+                {
+                    var starCoord = entity != null ? entity.GetCoordinate() : Vector2.zero;
+                    foreach (var opt in _levelData.AnswerOptions)
+                    {
+                        if (opt.Coordinate == starCoord && _usedOptionIds.Remove(opt.OptionId))
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                _errorCount = Mathf.Max(0, _errorCount - 1);
+                _attemptCount = Mathf.Max(0, _attemptCount - 1);
+            }
+
+            _answerSystem?.ResetSelection();
+            _answerSystem?.FunctionEditor?.ResetAdjustments();
+            ShowTask();
+        }
+
+        /// <summary>
+        /// Single entry-point for "the player just submitted an incorrect
+        /// answer": bumps error / attempt counters and deducts a life so the
+        /// HUD heart count reflects the mistake.
+        /// </summary>
+        void RegisterIncorrect()
+        {
+            ++_errorCount;
+            ++_attemptCount;
+            _livesService?.DeductLife();
+        }
+
+        /// <summary>
+        /// Restart the level from scratch on the same <see cref="LevelData"/>.
+        /// Stops any running animations, unsubscribes the existing answer
+        /// listener, and re-runs <see cref="Initialize"/>.
+        /// </summary>
+        public void RestartLevel()
+        {
+            if (_levelData == null) return;
+
+            StopAllCoroutines();
+
+            if (_answerSystem)
+                _answerSystem.OnAnswerConfirmed -= OnAnswerSubmitted;
+
+            Initialize(_levelData);
+        }
+
+        /// <summary>
         /// Present the next star's task to the player.
         /// </summary>
         void ShowTask()
@@ -270,13 +378,27 @@ namespace StarFunc.Gameplay
 
             var targetStar = _solutionStars[_currentStarIndex];
 
-            // Set up answer system with the level's options.
-            _answerSystem.Setup(_levelData.AnswerOptions, _levelData.TaskType);
+            // Set up answer system with the level's options, filtering out any
+            // options the player has already used correctly. Without this filter
+            // a correctly-picked coordinate would re-appear next round and
+            // suggest re-tapping it — confusing once its star is already placed.
+            _answerSystem.Setup(GetAvailableOptions(), _levelData.TaskType);
 
             Debug.Log($"[LevelController] ShowTask: star '{targetStar.StarId}' " +
                       $"at ({targetStar.Coordinate.x}, {targetStar.Coordinate.y})");
 
             AwaitInput();
+        }
+
+        AnswerOption[] GetAvailableOptions()
+        {
+            var all = _levelData.AnswerOptions;
+            if (all == null || _usedOptionIds.Count == 0) return all;
+            var filtered = new List<AnswerOption>(all.Length);
+            for (int i = 0; i < all.Length; i++)
+                if (!_usedOptionIds.Contains(all[i].OptionId))
+                    filtered.Add(all[i]);
+            return filtered.ToArray();
         }
 
         void AwaitInput()
@@ -340,6 +462,7 @@ namespace StarFunc.Gameplay
 
             if (isCorrect)
             {
+                _usedOptionIds.Add(answer.SelectedOptionId);
                 CompleteStar(targetStar);
             }
             else
@@ -379,8 +502,7 @@ namespace StarFunc.Gameplay
             }
             else
             {
-                _errorCount++;
-                _attemptCount++;
+                RegisterIncorrect();
                 Debug.Log($"[LevelController] ChooseFunction: incorrect. Errors: {_errorCount}");
 
                 if (_levelData.MaxAttempts > 0 && _attemptCount >= _levelData.MaxAttempts)
@@ -486,8 +608,7 @@ namespace StarFunc.Gameplay
                 return;
             }
 
-            _errorCount++;
-            _attemptCount++;
+            RegisterIncorrect();
             Debug.Log($"[LevelController] AdjustGraph: incorrect. Errors: {_errorCount}");
 
             if (_levelData.MaxAttempts > 0 && _attemptCount >= _levelData.MaxAttempts)
@@ -531,8 +652,7 @@ namespace StarFunc.Gameplay
                 return;
             }
 
-            _errorCount++;
-            _attemptCount++;
+            RegisterIncorrect();
             Debug.Log($"[LevelController] BuildFunction: incorrect. Errors: {_errorCount}");
 
             if (_levelData.MaxAttempts > 0 && _attemptCount >= _levelData.MaxAttempts)
@@ -574,8 +694,7 @@ namespace StarFunc.Gameplay
                 return;
             }
 
-            _errorCount++;
-            _attemptCount++;
+            RegisterIncorrect();
             Debug.Log($"[LevelController] IdentifyError: incorrect. Errors: {_errorCount}");
 
             if (_levelData.MaxAttempts > 0 && _attemptCount >= _levelData.MaxAttempts)
@@ -630,8 +749,7 @@ namespace StarFunc.Gameplay
                 return;
             }
 
-            _errorCount++;
-            _attemptCount++;
+            RegisterIncorrect();
             Debug.Log($"[LevelController] RestoreConstellation: tap missed '{target.StarId}' " +
                       $"by {dist:F2} (threshold={threshold:F2}). Errors: {_errorCount}");
 
@@ -659,8 +777,22 @@ namespace StarFunc.Gameplay
         /// </summary>
         bool ValidateChooseCoordinate(PlayerAnswer answer)
         {
+            // Player may solve the visible solution stars in any order. Find an
+            // unsolved star whose coordinate matches the pick, and swap it into
+            // the current index slot so CompleteStar / AdvanceToNextStar mark
+            // the right one as Placed.
             var option = _answerSystem.GetOption(answer.SelectedOptionId);
-            return option.IsCorrect;
+            for (int i = _currentStarIndex; i < _solutionStars.Count; i++)
+            {
+                if (_solutionStars[i].Coordinate == option.Coordinate)
+                {
+                    if (i != _currentStarIndex)
+                        (_solutionStars[_currentStarIndex], _solutionStars[i]) =
+                            (_solutionStars[i], _solutionStars[_currentStarIndex]);
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -720,8 +852,7 @@ namespace StarFunc.Gameplay
         /// </summary>
         void FailAttempt(StarConfig config)
         {
-            _errorCount++;
-            _attemptCount++;
+            RegisterIncorrect();
 
             var entity = _starManager.GetStar(config.StarId);
             if (entity != null)
@@ -914,6 +1045,14 @@ namespace StarFunc.Gameplay
         void ShowResult(LevelResult result)
         {
             SetState(LevelState.ShowResult);
+
+            // Persist the result before notifying listeners. ProgressionService
+            // updates BestStars / Attempts / sector unlock state and forwards
+            // FragmentsEarned to IEconomyService — without this nothing carries
+            // over between sessions and the next level stays locked. The call
+            // is a no-op on invalid (failed) results.
+            if (_progressionService != null && _levelData != null)
+                _progressionService.CompleteLevel(_levelData.LevelId, result);
 
             if (_onLevelCompleted) _onLevelCompleted.Raise(result);
 

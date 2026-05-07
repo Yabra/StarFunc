@@ -28,6 +28,7 @@ namespace StarFunc.Meta
         readonly ContentService _content;
         readonly IEconomyService _economy;
         readonly ISaveService _saveService;
+        readonly Core.GameEvent<int> _onHintsChanged;
         readonly PlayerSaveData _save;
 
         public event Action<ShopItemDto> OnItemPurchased;
@@ -35,11 +36,13 @@ namespace StarFunc.Meta
         public LocalShopService(
             ContentService content,
             IEconomyService economy,
-            ISaveService saveService)
+            ISaveService saveService,
+            Core.GameEvent<int> onHintsChanged = null)
         {
             _content = content;
             _economy = economy;
             _saveService = saveService;
+            _onHintsChanged = onHintsChanged;
             _save = _saveService.Load() ?? new PlayerSaveData();
             _save.OwnedItems ??= new List<string>();
             _save.Consumables ??= new Dictionary<string, int>();
@@ -101,7 +104,10 @@ namespace StarFunc.Meta
                 string key = ResolveConsumableKey(item);
                 int qty = item.Quantity ?? 1;
                 _save.Consumables.TryGetValue(key, out int existing);
-                _save.Consumables[key] = existing + qty;
+                int newCount = existing + qty;
+                _save.Consumables[key] = newCount;
+                if (key == HintsKey)
+                    _onHintsChanged?.Raise(newCount);
             }
             else
             {
@@ -153,14 +159,21 @@ namespace StarFunc.Meta
             if (!item.IsConsumable && !_save.OwnedItems.Contains(item.ItemId))
                 _save.OwnedItems.Add(item.ItemId);
 
+            bool hintsChanged = false;
             if (consumablesUpdate != null)
             {
                 foreach (var kv in consumablesUpdate)
+                {
                     _save.Consumables[kv.Key] = kv.Value;
+                    if (kv.Key == HintsKey) hintsChanged = true;
+                }
             }
 
             _save.IncrementVersion();
             _saveService.Save(_save);
+
+            if (hintsChanged)
+                _onHintsChanged?.Raise(_save.Consumables.TryGetValue(HintsKey, out var n) ? n : 0);
 
             OnItemPurchased?.Invoke(item);
         }

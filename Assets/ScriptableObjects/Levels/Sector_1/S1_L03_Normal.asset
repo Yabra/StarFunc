@@ -51,25 +51,53 @@ MonoBehaviour:
   ReferenceFunctions:
   - {fileID: 11400000, guid: 916d1adc2a6eed84f91591f527b1faa9, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (3, 1.5)
+  - OptionId: opt_neg4_neg2
+    Text: (-4, -2)
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: -4, y: -2}
     Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (3, 2)
+  - OptionId: opt_neg2_neg1
+    Text: (-2, -1)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: -2, y: -1}
+    Function: {fileID: 0}
+  - OptionId: opt_0_0
+    Text: (0, 0)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 0}
+  - OptionId: opt_2_1
+    Text: (2, 1)
+    Value: 0
+    IsCorrect: 1
+    Coordinate: {x: 2, y: 1}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_neg2_neg2
+    Text: (-2, -2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -2, y: -2}
     Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (4, 1.5)
+  - OptionId: opt_dist_2_neg1
+    Text: (2, -1)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 2, y: -1}
     Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (3, 0)
+  - OptionId: opt_dist_neg4_2
+    Text: (-4, 2)
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: -4, y: 2}
+    Function: {fileID: 0}
+  - OptionId: opt_dist_4_neg2
+    Text: (4, -2)
+    Value: 0
+    IsCorrect: 0
+    Coordinate: {x: 4, y: -2}
     Function: {fileID: 0}
   AccuracyThreshold: 0.5
   StarRating:
@@ -87,6 +115,11 @@ MonoBehaviour:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
+  ShowHints: 1
+  Hints:
+  - Trigger: 4
+    HintText: "Звёзды лежат на одной линии: каждая y равна половине её x."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
   FragmentReward: 10

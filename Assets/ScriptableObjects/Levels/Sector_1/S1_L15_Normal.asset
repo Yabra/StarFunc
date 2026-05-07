@@ -40,30 +40,30 @@ MonoBehaviour:
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
-  TaskType: 0
+  TaskType: 1
   ReferenceFunctions:
   - {fileID: 11400000, guid: e28bd683e5ef3c1b6883eceb001da4ef, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (3, 4.5)
+  - OptionId: opt_correct
+    Text: y = 1.5x
     Value: 0
     IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (3, 5)
+    Function: {fileID: 11400000, guid: e28bd683e5ef3c1b6883eceb001da4ef, type: 2}
+  - OptionId: opt_dist_2xm1
+    Text: y = 2x - 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (4, 4.5)
+    Function: {fileID: 11400000, guid: 74108b7d004d7b2efac22d696f4a3bcd, type: 2}
+  - OptionId: opt_dist_halfxm1
+    Text: y = 0.5x - 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (3, 3)
+    Function: {fileID: 11400000, guid: 37a64c41f7c8be3c1ba282053091a1d4, type: 2}
+  - OptionId: opt_dist_xp3
+    Text: y = x + 3
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
+    Function: {fileID: 11400000, guid: 608bcd22bbade32c48930ac8b8835d8f, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
