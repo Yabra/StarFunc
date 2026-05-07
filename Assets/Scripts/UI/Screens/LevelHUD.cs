@@ -101,7 +101,9 @@ namespace StarFunc.UI
         void RefreshHintsCount(int count)
         {
             if (_hintsAmountText) _hintsAmountText.text = count.ToString();
-            if (_hintButton && _hintSystem != null) _hintButton.interactable = count > 0;
+            // Interactable state is driven from Update() so the button reflects
+            // not just inventory but also "no unshown hints left" — auto-hints
+            // that consume the last available hint don't fire OnHintsChanged.
         }
 
         void OnHintClicked()
@@ -122,6 +124,10 @@ namespace StarFunc.UI
                 _confirmButton.interactable = _levelController.AnswerSystem != null
                                               && _levelController.AnswerSystem.HasSelection
                                               && _levelController.AnswerSystem.IsActive;
+
+            if (_hintButton && _hintSystem != null)
+                _hintButton.interactable = _hintSystem.PaidHintCount > 0
+                                           && _hintSystem.HasUnshownHints;
         }
 
         void OnConfirmClicked()

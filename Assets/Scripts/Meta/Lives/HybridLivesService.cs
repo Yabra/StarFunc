@@ -73,6 +73,15 @@ namespace StarFunc.Meta
             _local.DeductLife();
         }
 
+        public void GrantFreeLives(int quantity)
+        {
+            // Shop-driven grant: apply locally regardless of connectivity. The
+            // online purchase response is server-authoritative for fragments
+            // and consumables but does not currently echo currentLives, so we
+            // mirror the offline path for both.
+            _local.GrantFreeLives(quantity);
+        }
+
         #endregion
 
         #region Server sync

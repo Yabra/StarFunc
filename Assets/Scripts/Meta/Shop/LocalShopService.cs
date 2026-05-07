@@ -27,6 +27,7 @@ namespace StarFunc.Meta
 
         readonly ContentService _content;
         readonly IEconomyService _economy;
+        readonly ILivesService _lives;
         readonly ISaveService _saveService;
         readonly Core.GameEvent<int> _onHintsChanged;
         readonly PlayerSaveData _save;
@@ -37,10 +38,12 @@ namespace StarFunc.Meta
             ContentService content,
             IEconomyService economy,
             ISaveService saveService,
+            ILivesService lives = null,
             Core.GameEvent<int> onHintsChanged = null)
         {
             _content = content;
             _economy = economy;
+            _lives = lives;
             _saveService = saveService;
             _onHintsChanged = onHintsChanged;
             _save = _saveService.Load() ?? new PlayerSaveData();
@@ -101,13 +104,26 @@ namespace StarFunc.Meta
 
             if (item.IsConsumable)
             {
-                string key = ResolveConsumableKey(item);
                 int qty = item.Quantity ?? 1;
-                _save.Consumables.TryGetValue(key, out int existing);
-                int newCount = existing + qty;
-                _save.Consumables[key] = newCount;
-                if (key == HintsKey)
-                    _onHintsChanged?.Raise(newCount);
+
+                // Lives don't accumulate as inventory tokens — they go straight
+                // into PlayerSaveData.CurrentLives via ILivesService. Bumping a
+                // "life_restores" Consumable counter would just leak (no
+                // redemption code path consumes it), so the player would pay
+                // and see no change to their hearts.
+                if (string.Equals(item.Category, "Lives", StringComparison.OrdinalIgnoreCase))
+                {
+                    _lives?.GrantFreeLives(qty);
+                }
+                else
+                {
+                    string key = ResolveConsumableKey(item);
+                    _save.Consumables.TryGetValue(key, out int existing);
+                    int newCount = existing + qty;
+                    _save.Consumables[key] = newCount;
+                    if (key == HintsKey)
+                        _onHintsChanged?.Raise(newCount);
+                }
             }
             else
             {
@@ -164,10 +180,17 @@ namespace StarFunc.Meta
             {
                 foreach (var kv in consumablesUpdate)
                 {
+                    // Server may report life-restore purchases as a consumable
+                    // delta; mirror PurchaseItem and convert that into actual
+                    // hearts instead of a leaked counter.
+                    if (kv.Key == LifeRestoresKey) continue;
                     _save.Consumables[kv.Key] = kv.Value;
                     if (kv.Key == HintsKey) hintsChanged = true;
                 }
             }
+
+            if (string.Equals(item.Category, "Lives", StringComparison.OrdinalIgnoreCase))
+                _lives?.GrantFreeLives(item.Quantity ?? 1);
 
             _save.IncrementVersion();
             _saveService.Save(_save);

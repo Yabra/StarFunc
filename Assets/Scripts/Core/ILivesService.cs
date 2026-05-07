@@ -23,5 +23,13 @@ namespace StarFunc.Core
         /// a local fallback / optimistic update.
         /// </summary>
         void DeductLife();
+
+        /// <summary>
+        /// Grant <paramref name="quantity"/> lives without spending fragments.
+        /// Used by the shop after a Lives-category purchase has already been
+        /// debited via IEconomyService — RestoreLife/RestoreAllLives can't be
+        /// reused there because they spend a second time.
+        /// </summary>
+        void GrantFreeLives(int quantity);
     }
 }

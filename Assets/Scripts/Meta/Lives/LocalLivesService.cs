@@ -75,6 +75,20 @@ namespace StarFunc.Meta
             return true;
         }
 
+        public void GrantFreeLives(int quantity)
+        {
+            if (quantity <= 0) return;
+            if (_save.CurrentLives >= _balanceConfig.MaxLives) return;
+
+            _save.CurrentLives = Math.Min(
+                _balanceConfig.MaxLives,
+                _save.CurrentLives + quantity);
+
+            ResetTimerIfAtMax();
+            SaveAndNotify();
+            TrackLifeRestored("shop");
+        }
+
         /// <summary>
         /// Deducts one life. Called by LevelController on incorrect answer.
         /// </summary>

@@ -140,7 +140,9 @@ namespace StarFunc.Infrastructure
             // backing store with a REST surface (task 4.3a). Online purchases
             // are server-authoritative; offline purchases run locally and
             // queue with cachedPrice for SyncProcessor to flush on reconnect.
-            var localShopService = new LocalShopService(contentService, economyService, saveService, _onHintsChanged);
+            var localShopService = new LocalShopService(
+                contentService, economyService, saveService,
+                lives: livesService, onHintsChanged: _onHintsChanged);
             var serverShopService = new ServerShopService(apiClient);
             var shopService = new HybridShopService(
                 localShopService, serverShopService,

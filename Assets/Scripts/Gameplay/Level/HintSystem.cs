@@ -71,6 +71,14 @@ namespace StarFunc.Gameplay
             _save != null && _save.Consumables != null
                 && _save.Consumables.TryGetValue(ConsumableKey, out var n) ? n : 0;
 
+        /// <summary>
+        /// True iff the current level still has at least one configured hint
+        /// that hasn't been shown yet (auto OR paid). When false, a paid press
+        /// would just raise <see cref="OnNoHintsAvailable"/> — UI uses this to
+        /// disable the hint button preemptively.
+        /// </summary>
+        public bool HasUnshownHints => FindNextUnshownHint() >= 0;
+
         void Start()
         {
             if (_levelController == null)

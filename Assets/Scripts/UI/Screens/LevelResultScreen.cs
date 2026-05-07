@@ -1,4 +1,6 @@
+using StarFunc.Core;
 using StarFunc.Data;
+using StarFunc.Meta;
 using System;
 using TMPro;
 using UnityEngine;
@@ -53,7 +55,16 @@ namespace StarFunc.UI
                 _starRating.SetStars(result.Stars, animate: true);
 
             if (_fragmentsDisplay)
-                _fragmentsDisplay.SetFragments(result.FragmentsEarned);
+            {
+                // Show the player's current TOTAL fragments, not just the reward
+                // for this level. ProgressionService.CompleteLevel has already
+                // run before HandleCompleted fires, so EconomyService reflects
+                // the post-reward balance.
+                int total = ServiceLocator.Contains<IEconomyService>()
+                    ? ServiceLocator.Get<IEconomyService>().GetFragments()
+                    : result.FragmentsEarned;
+                _fragmentsDisplay.SetFragments(total);
+            }
 
             if (_timeText)
             {
