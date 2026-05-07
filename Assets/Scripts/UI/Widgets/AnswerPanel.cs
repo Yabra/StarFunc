@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using StarFunc.Data;
 using StarFunc.Gameplay;
 using TMPro;
@@ -16,9 +17,27 @@ namespace StarFunc.UI
         [SerializeField] float _formulaFontSize = 28f;
         [SerializeField] FontStyles _formulaFontStyle = FontStyles.Italic;
 
+        [Header("Scroll Hint")]
+        [Tooltip("Optional arrow image shown only when the answer list overflows the panel. " +
+                 "Bobs up/down occasionally as a hand-off cue.")]
+        [SerializeField] RectTransform _scrollHint;
+        [Tooltip("Idle pause between bobs (seconds).")]
+        [SerializeField] float _scrollHintIdleSeconds = 3.5f;
+        [Tooltip("Vertical travel of the bob (pixels at canvas-reference scale).")]
+        [SerializeField] float _scrollHintBobAmount = 14f;
+
+        float _scrollHintBaseY;
+        Tween _scrollHintTween;
+
         void Awake()
         {
             if (_buttonContainer == null) _buttonContainer = transform;
+
+            if (_scrollHint != null)
+            {
+                _scrollHintBaseY = _scrollHint.anchoredPosition.y;
+                _scrollHint.gameObject.SetActive(false);
+            }
 
             EnsureScrollSetup();
 
@@ -104,6 +123,7 @@ namespace StarFunc.UI
         {
             if (_answerSystem != null)
                 _answerSystem.OnOptionsChanged -= OnOptionsChanged;
+            KillScrollHintTween();
         }
 
         void OnOptionsChanged(AnswerOption[] options, TaskType taskType)
@@ -137,6 +157,78 @@ namespace StarFunc.UI
                 button.onClick.AddListener(() => OnButtonClicked(index));
                 _spawnedButtons.Add(button);
             }
+
+            UpdateScrollHint();
+        }
+
+        void UpdateScrollHint()
+        {
+            if (_scrollHint == null) return;
+            if (transform is not RectTransform viewport) return;
+            if (_buttonContainer is not RectTransform content) return;
+
+            // ContentSizeFitter only computes the new preferred height after a
+            // layout pass, so force one synchronously before measuring.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+
+            bool scrollable = content.rect.height > viewport.rect.height + 0.5f;
+
+            if (scrollable)
+            {
+                if (!_scrollHint.gameObject.activeSelf)
+                    _scrollHint.gameObject.SetActive(true);
+                EnsureScrollHintTween();
+            }
+            else
+            {
+                KillScrollHintTween();
+                if (_scrollHint.gameObject.activeSelf)
+                    _scrollHint.gameObject.SetActive(false);
+            }
+        }
+
+        void EnsureScrollHintTween()
+        {
+            if (_scrollHintTween != null && _scrollHintTween.IsActive()) return;
+
+            _scrollHint.anchoredPosition = new Vector2(_scrollHint.anchoredPosition.x, _scrollHintBaseY);
+
+            // RectTransform.DOAnchorPos* extensions live in DOTween's UI
+            // module (compiled into Assembly-CSharp, inaccessible from
+            // asmdefs), so drive the y component through DOTween.To — same
+            // pattern as CutscenePopup.TweenAnchoredPosX.
+            _scrollHintTween = DOTween.Sequence()
+                .AppendInterval(_scrollHintIdleSeconds)
+                .Append(AnchorPosYTween(_scrollHintBaseY - _scrollHintBobAmount, 0.18f, Ease.OutQuad))
+                .Append(AnchorPosYTween(_scrollHintBaseY + _scrollHintBobAmount * 0.4f, 0.22f, Ease.OutQuad))
+                .Append(AnchorPosYTween(_scrollHintBaseY, 0.16f, Ease.InOutQuad))
+                .SetLoops(-1)
+                .SetLink(_scrollHint.gameObject);
+        }
+
+        Tween AnchorPosYTween(float endY, float duration, Ease ease)
+        {
+            return DOTween
+                .To(() => _scrollHint.anchoredPosition.y,
+                    y =>
+                    {
+                        var p = _scrollHint.anchoredPosition;
+                        p.y = y;
+                        _scrollHint.anchoredPosition = p;
+                    },
+                    endY, duration)
+                .SetEase(ease);
+        }
+
+        void KillScrollHintTween()
+        {
+            if (_scrollHintTween != null)
+            {
+                _scrollHintTween.Kill();
+                _scrollHintTween = null;
+            }
+            if (_scrollHint != null)
+                _scrollHint.anchoredPosition = new Vector2(_scrollHint.anchoredPosition.x, _scrollHintBaseY);
         }
 
         static string FormatFunctionFormula(FunctionDefinition function)
