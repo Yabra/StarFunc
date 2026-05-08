@@ -17,16 +17,32 @@ namespace StarFunc.Gameplay
         [SerializeField] CoordinatePlane _plane;
         [SerializeField] Camera _camera;
 
+        [Header("Spawn")]
+        [Tooltip("Each star is rotated around Z by a random angle in " +
+                 "[-_maxRandomTiltDegrees, +_maxRandomTiltDegrees] on spawn so " +
+                 "the field doesn't look like a perfectly aligned grid.")]
+        [SerializeField] float _maxRandomTiltDegrees = 20f;
+
         [Header("Constellation Lines")]
         [SerializeField] Color _constellationLineColor = new(1f, 0.85f, 0.3f, 1f);
         [SerializeField] float _constellationLineWidth = 0.06f;
         [SerializeField] float _constellationLineDrawDuration = 0.5f;
-        [SerializeField] int _constellationLineSortingOrder = 4;
+        [SerializeField] int _constellationLineSortingOrder;
 
         readonly Dictionary<string, StarEntity> _stars = new();
         readonly List<LineRenderer> _constellationLines = new();
         Transform _constellationLineRoot;
         IFeedbackService _feedback;
+
+        // Cached so every LineRenderer shares one material instance and we
+        // don't recreate it per draw. Sprites/Default uses normal alpha blend
+        // and respects vertex colours — without an explicit material URP picks
+        // a default whose blend mode renders yellow-over-blue as purple.
+        static Material s_lineMaterial;
+        static Material LineMaterial =>
+            s_lineMaterial != null
+                ? s_lineMaterial
+                : (s_lineMaterial = new Material(Shader.Find("Sprites/Default")));
 
         IFeedbackService Feedback
         {
@@ -108,7 +124,9 @@ namespace StarFunc.Gameplay
             foreach (var config in configs)
             {
                 var worldPos = _plane.PlaneToWorld(config.Coordinate);
-                var instance = Instantiate(_starPrefab, worldPos, Quaternion.identity, transform);
+                var rotation = Quaternion.Euler(0f, 0f,
+                    UnityEngine.Random.Range(-_maxRandomTiltDegrees, _maxRandomTiltDegrees));
+                var instance = Instantiate(_starPrefab, worldPos, rotation, transform);
                 instance.Initialize(config);
                 instance.OnTapped += HandleStarTapped;
                 _stars[config.StarId] = instance;
@@ -212,6 +230,7 @@ namespace StarFunc.Gameplay
             var go = new GameObject("ConstellationLine");
             go.transform.SetParent(_constellationLineRoot, false);
             var lr = go.AddComponent<LineRenderer>();
+            lr.sharedMaterial = LineMaterial;
             lr.useWorldSpace = true;
             lr.positionCount = 2;
             lr.startWidth = _constellationLineWidth;

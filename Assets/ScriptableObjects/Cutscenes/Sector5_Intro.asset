@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe9395cebe50b3d99a249cf45e5076f0, type: 3}
+  m_Name: Sector5_Intro
+  m_EditorClassIdentifier: StarFunc.Data::StarFunc.Data.CutsceneData
+  CutsceneId: sector1_intro
+  Frames:
+  - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
+    Text: "\u041F\u0440\u0438\u0432\u0435\u0442!"
+    Duration: 0
+    Animation: 2
+  - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
+    Text: "\u041A\u0430\u043A \u0434\u0435\u043B\u0430?"
+    Duration: 0
+    Animation: 0

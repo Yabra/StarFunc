@@ -126,7 +126,16 @@ namespace StarFunc.UI
             _waitingForTap = false;
             if (_tapHint) _tapHint.SetActive(false);
 
-            _typewriterRoutine = StartCoroutine(TypewriterRoutine(frame.Text));
+            if (frame.SkipTextAnimation)
+            {
+                if (_text != null) _text.text = frame.Text ?? string.Empty;
+                _typewriterDone = true;
+                ShowTapHintIfNeeded();
+            }
+            else
+            {
+                _typewriterRoutine = StartCoroutine(TypewriterRoutine(frame.Text));
+            }
 
             if (frame.Duration > 0f)
                 _autoAdvanceRoutine = StartCoroutine(AutoAdvanceRoutine(frame.Duration));

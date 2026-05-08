@@ -15,6 +15,10 @@ namespace StarFunc.UI
         [SerializeField] Image _stateRing;
         [SerializeField] Image _sectorConstellation;
         [SerializeField] GameObject _lockOverlay;
+        [Tooltip("Shown only when the sector is Completed (every level cleared). " +
+                 "Sprite is taken from SectorData.FinishedOverlaySprite — leave that " +
+                 "null on a sector to suppress the overlay even on completion.")]
+        [SerializeField] Image _finishedOverlay;
         [SerializeField] GameObject _notificationBadge;
         [SerializeField] TMP_Text _sectorNameText;
         [SerializeField] TMP_Text _starsText;
@@ -108,13 +112,21 @@ namespace StarFunc.UI
 
         void ApplyVisualState(SectorState state)
         {
-            bool interactable = state == SectorState.Available || state == SectorState.InProgress;
+            bool interactable = state != SectorState.Locked;
 
             if (_button)
                 _button.interactable = interactable;
 
             if (_lockOverlay)
                 _lockOverlay.SetActive(state == SectorState.Locked);
+
+            if (_finishedOverlay)
+            {
+                var finishedSprite = _sectorData != null ? _sectorData.FinishedOverlaySprite : null;
+                bool show = state == SectorState.Completed && finishedSprite != null;
+                if (show) _finishedOverlay.sprite = finishedSprite;
+                _finishedOverlay.gameObject.SetActive(show);
+            }
 
             if (_sectorIcon)
             {
@@ -218,7 +230,7 @@ namespace StarFunc.UI
 
         void HandleClick()
         {
-            if (_state == SectorState.Available || _state == SectorState.InProgress)
+            if (_state != SectorState.Locked)
                 OnClicked?.Invoke(_sectorData);
         }
 

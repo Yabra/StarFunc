@@ -14,13 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: StarFunc.Data::StarFunc.Data.CutsceneData
   CutsceneId: sector1_intro
   Frames:
-  - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
-    CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
+  - Background: {fileID: 21300000, guid: 9f63c956c00750124b1b3f89809c5622, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: bad7abd627deabc9bb0ec2935c6cad8c, type: 3}
     Text: "\u041F\u0440\u0438\u0432\u0435\u0442!"
     Duration: 0
-    Animation: 2
-  - Background: {fileID: 21300000, guid: 89cc76bee4b9128748e902383797d47b, type: 3}
-    CharacterSprite: {fileID: 21300000, guid: e006b9268fc7416108013419a35691d4, type: 3}
-    Text: "\u041A\u0430\u043A \u0434\u0435\u043B\u0430?"
+    Animation: 5
+    SkipTextAnimation: 0
+  - Background: {fileID: 21300000, guid: 3481ac6a689954caba1ec39ad405d15a, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: 97f27e35931d1bbd8b450d838ffad634, type: 3}
+    Text: "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438 \u043D\u0430 \u043D\u0435\u0431\u043E
+      \u2014 \u0441 \u0441\u043E\u0437\u0432\u0435\u0437\u0434\u0438\u044F\u043C\u0438
+      \u0447\u0442\u043E-\u0442\u043E \u043D\u0435 \u0442\u0430\u043A!"
+    Duration: 3
+    Animation: 4
+    SkipTextAnimation: 0
+  - Background: {fileID: 21300000, guid: dac43e35ef66ae3d196f79d96124742d, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: 97f27e35931d1bbd8b450d838ffad634, type: 3}
+    Text: "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438 \u043D\u0430 \u043D\u0435\u0431\u043E
+      \u2014 \u0441 \u0441\u043E\u0437\u0432\u0435\u0437\u0434\u0438\u044F\u043C\u0438
+      \u0447\u0442\u043E-\u0442\u043E \u043D\u0435 \u0442\u0430\u043A!"
     Duration: 0
-    Animation: 0
+    Animation: 5
+    SkipTextAnimation: 1
+  - Background: {fileID: 21300000, guid: dac43e35ef66ae3d196f79d96124742d, type: 3}
+    CharacterSprite: {fileID: 21300000, guid: bad7abd627deabc9bb0ec2935c6cad8c, type: 3}
+    Text: "\u041C\u044B \u0434\u043E\u043B\u0436\u043D\u044B \u0432\u0435\u0440\u043D\u0443\u0442\u044C
+      \u0438\u0445 \u043E\u0431\u0440\u0430\u0442\u043D\u043E!"
+    Duration: 0
+    Animation: 5
+    SkipTextAnimation: 0

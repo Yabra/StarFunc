@@ -40,8 +40,9 @@ MonoBehaviour:
   RequiredStarsToUnlock: 30
   ConstellationSprite: {fileID: 21300000, guid: e8a4a9c8f0da9a1cfbdeafb2d0acab2e, type: 3}
   ConstellationRestoredSprite: {fileID: 21300000, guid: 17b74f24a985abf94a1c4bc46ab945d6, type: 3}
-  SectorIcon: {fileID: 0}
+  SectorIcon: {fileID: -2681982323759418737, guid: 5142a53e1973314d390ec4e2f65c9f85, type: 3}
+  FinishedOverlaySprite: {fileID: 21300000, guid: 0c0d703786d3bd55aa710e9f90c5a01d, type: 3}
   AccentColor: {r: 0.3, g: 0.85, b: 0.85, a: 1}
   StarColor: {r: 1, g: 1, b: 1, a: 1}
-  IntroCutscene: {fileID: 0}
-  OutroCutscene: {fileID: 0}
+  IntroCutscene: {fileID: 11400000, guid: fbad1aeb5209d512c8e402f0f3664fae, type: 2}
+  OutroCutscene: {fileID: 11400000, guid: cfd203a5722412791aa287a9f8264f3d, type: 2}

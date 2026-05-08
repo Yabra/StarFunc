@@ -51,26 +51,26 @@ MonoBehaviour:
   ReferenceFunctions:
   - {fileID: 11400000, guid: dcb6e44ff55cab6c596528bbab32a490, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
+  - OptionId: opt_correct
     Text: y = -x + 2
     Value: 0
     IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: y = 0x + 2
+    Function: {fileID: 11400000, guid: dcb6e44ff55cab6c596528bbab32a490, type: 2}
+  - OptionId: opt_dist_negxp5
+    Text: y = -x + 5
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: y = -x + 3
+    Function: {fileID: 11400000, guid: 7bcd497636092dccc8056e3a304e025d, type: 2}
+  - OptionId: opt_dist_neg2xp4
+    Text: y = -2x + 4
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: y = x + 2
+    Function: {fileID: 11400000, guid: ead45279caabc8d1fb1b73368297b216, type: 2}
+  - OptionId: opt_dist_xp3
+    Text: y = x + 3
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
+    Function: {fileID: 11400000, guid: 608bcd22bbade32c48930ac8b8835d8f, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0

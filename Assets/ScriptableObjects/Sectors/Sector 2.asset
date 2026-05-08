@@ -41,7 +41,8 @@ MonoBehaviour:
   ConstellationSprite: {fileID: 21300000, guid: 24d12453758f4e139b8ac4ba925d4130, type: 3}
   ConstellationRestoredSprite: {fileID: 21300000, guid: 61b08614cf1ada966b4d794216093743, type: 3}
   SectorIcon: {fileID: 6610473680633478743, guid: 36a443f4afa9efacd8f26dda78d17a81, type: 3}
+  FinishedOverlaySprite: {fileID: 21300000, guid: 6f5d22fc145b641d8ab87cf39e39ea0c, type: 3}
   AccentColor: {r: 0.3, g: 0.6, b: 0.9, a: 1}
   StarColor: {r: 1, g: 1, b: 1, a: 1}
-  IntroCutscene: {fileID: 0}
-  OutroCutscene: {fileID: 0}
+  IntroCutscene: {fileID: 11400000, guid: 23a759c3974d5afb9b08b78ef9fa1f0c, type: 2}
+  OutroCutscene: {fileID: 11400000, guid: 959122758d905b6cfb72ff2f863ef3fb, type: 2}

@@ -11,5 +11,8 @@ namespace StarFunc.Data
         [TextArea] public string Text;
         public float Duration;
         public CutsceneFrameAnimation Animation;
+        [Tooltip("If true, this frame's text appears instantly instead of typing in. " +
+                 "Default false (typewriter animation enabled).")]
+        public bool SkipTextAnimation;
     }
 }

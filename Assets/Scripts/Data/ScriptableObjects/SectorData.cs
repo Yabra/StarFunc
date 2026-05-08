@@ -31,6 +31,9 @@ namespace StarFunc.Data
         public Sprite ConstellationSprite;
         public Sprite ConstellationRestoredSprite;
         public Sprite SectorIcon;
+        [Tooltip("Overlay shown on the SectorNode once this sector is fully completed. " +
+                 "Per-sector art (e.g. a 'finished' stamp / glow). Leave null to hide.")]
+        public Sprite FinishedOverlaySprite;
         public Color AccentColor;
         public Color StarColor;
 

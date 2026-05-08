@@ -96,7 +96,7 @@ namespace StarFunc.Gameplay
         static void ConfigureLineRenderer(LineRenderer lr)
         {
             lr.useWorldSpace = false;
-            lr.sortingOrder = 5;
+            lr.sortingOrder = 0;
             lr.startWidth = 0.06f;
             lr.endWidth = 0.06f;
             lr.startColor = ColorTokens.LINE_PRIMARY;

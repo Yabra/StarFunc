@@ -132,7 +132,32 @@ namespace StarFunc.UI
         {
             base.Show();
             RefreshAll();
+            QueuePendingOutrosFromState();
             DrainPendingOutros();
+        }
+
+        /// <summary>
+        /// Scan the sector roster and queue outros for any Completed sector
+        /// whose outro hasn't been shown yet. The event-driven path
+        /// (OnSectorStateChanged) misses cases where _onSectorCompleted fires
+        /// while the HubScreen GameObject is inactive — Level loading calls
+        /// SetHubUIActive(false), which detaches our listener exactly when
+        /// ProgressionService raises the completion event mid-Level.
+        /// </summary>
+        void QueuePendingOutrosFromState()
+        {
+            if (_progression == null || _sectors == null) return;
+
+            foreach (var sector in _sectors)
+            {
+                if (sector == null) continue;
+                if (sector.OutroCutscene == null) continue;
+                if (!_progression.IsSectorCompleted(sector.SectorId)) continue;
+                if (HasOutroBeenShown(sector.SectorId)) continue;
+                if (_pendingOutros.Contains(sector)) continue;
+
+                _pendingOutros.Enqueue(sector);
+            }
         }
 
         void RefreshAll()
@@ -509,13 +534,12 @@ namespace StarFunc.UI
 
         /// <summary>
         /// Whitelist of sectors that ship in the current alpha build. Returns
-        /// true for the first sector only — every other tap shows the
-        /// ContentErrorPopup. Update this once sectors 2..5 are content-
-        /// complete.
+        /// true for the first two sectors — taps on sectors 3..5 still show
+        /// the ContentErrorPopup. Expand once those are content-complete.
         /// </summary>
         static bool IsSectorShipped(SectorData sector)
         {
-            return sector != null && sector.SectorIndex == 0;
+            return sector != null && sector.SectorIndex <= 1;
         }
     }
 }
