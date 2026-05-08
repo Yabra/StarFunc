@@ -24,7 +24,18 @@ namespace StarFunc.UI
                  "SetLives().")]
         [SerializeField] GameEvent<int> _onLivesChanged;
 
+        [Header("Damage Flash")]
+        [Tooltip("Colour the heart icon flashes to when the lives count drops " +
+                 "(typically red). Returns to the original tint after the flash.")]
+        [SerializeField] Color _damageFlashColor = new(1f, 0.25f, 0.25f, 1f);
+        [Tooltip("Total duration of the colour flash (out + back).")]
+        [SerializeField, Min(0f)] float _damageFlashDuration = 0.45f;
+
         Tween _badgeTween;
+        Tween _damageFlashTween;
+        Color _iconBaseColor = Color.white;
+        bool _iconBaseColorCaptured;
+        int _lastCount = int.MinValue;
         bool _eventHookSubscribed;
 
         void OnEnable()
@@ -56,7 +67,44 @@ namespace StarFunc.UI
             // Heart glyph used to be embedded in text — it's now a sibling
             // Image because most fonts in the project don't ship that codepoint.
             if (_livesText) _livesText.text = count.ToString();
-            _ = _icon; // reserved for future tinting (e.g. dim when 0 lives)
+
+            CaptureIconBaseColorOnce();
+
+            // First call after subscribe seeds _lastCount silently — only
+            // genuine drops (player took damage) trigger the flash.
+            if (_lastCount != int.MinValue && count < _lastCount)
+                PlayDamageFlash();
+
+            _lastCount = count;
+        }
+
+        void PlayDamageFlash()
+        {
+            if (_icon == null || _damageFlashDuration <= 0f) return;
+
+            KillDamageFlashTween();
+            _icon.color = _iconBaseColor;
+
+            float half = _damageFlashDuration * 0.5f;
+            _damageFlashTween = DOTween.Sequence()
+                .Append(DOTween.To(() => _icon.color, c => _icon.color = c, _damageFlashColor, half))
+                .Append(DOTween.To(() => _icon.color, c => _icon.color = c, _iconBaseColor, _damageFlashDuration - half))
+                .SetLink(_icon.gameObject)
+                .OnKill(() => { if (_icon) _icon.color = _iconBaseColor; });
+        }
+
+        void CaptureIconBaseColorOnce()
+        {
+            if (_iconBaseColorCaptured || _icon == null) return;
+            _iconBaseColor = _icon.color;
+            _iconBaseColorCaptured = true;
+        }
+
+        void KillDamageFlashTween()
+        {
+            if (_damageFlashTween != null && _damageFlashTween.IsActive())
+                _damageFlashTween.Kill();
+            _damageFlashTween = null;
         }
 
         /// <summary>
@@ -95,6 +143,10 @@ namespace StarFunc.UI
             _badgeTween = null;
         }
 
-        void OnDestroy() => KillBadgeTween();
+        void OnDestroy()
+        {
+            KillBadgeTween();
+            KillDamageFlashTween();
+        }
     }
 }

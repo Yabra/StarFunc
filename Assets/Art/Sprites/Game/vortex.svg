@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   fill="#000000"
+   width="517.5"
+   height="517.5"
+   viewBox="0 0 20.7 20.7"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="vortex.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   inkscape:export-filename="vortex.png"
+   inkscape:export-xdpi="94.980003"
+   inkscape:export-ydpi="94.980003"
+   xml:space="preserve"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"><defs
+     id="defs1" /><sodipodi:namedview
+     id="namedview1"
+     pagecolor="#404040"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#101010"
+     inkscape:zoom="1.1075"
+     inkscape:cx="267.72009"
+     inkscape:cy="280.81264"
+     inkscape:window-width="1810"
+     inkscape:window-height="1177"
+     inkscape:window-x="1380"
+     inkscape:window-y="118"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" /><title
+     id="title1">pause</title><metadata
+     id="metadata1"><rdf:RDF><cc:Work
+         rdf:about=""><dc:title>pause</dc:title></cc:Work></rdf:RDF></metadata><circle
+     style="display:inline;fill:none;fill-opacity:1;stroke:none;stroke-width:0.24;stroke-dasharray:none;stroke-opacity:1"
+     id="path2"
+     cx="10.349999"
+     cy="10.349999"
+     r="10" /><g
+     style="fill:#f28c4c;fill-opacity:1"
+     id="g2"
+     transform="matrix(0.03642237,0,0,0.03642237,2.7287278,2.7286549)"><g
+       id="g1-7"
+       style="fill:#f28c4c;fill-opacity:1">
+	<path
+   d="m 246.92,187.032 c -6.793,-0.003 -12.844,-4.331 -15.057,-10.771 -2.08,-6.06 -7.779,-10.128 -14.188,-10.128 -0.002,0 -0.004,0 -0.006,0 l -9.392,0.004 c -4.642,0.002 -9.021,2.152 -11.86,5.824 -2.839,3.672 -3.818,8.451 -2.652,12.944 6.283,24.208 28.137,41.12 53.151,41.127 35.137,-0.009 63.725,-28.604 63.73,-63.748 -0.006,-41.243 -33.562,-74.797 -74.807,-74.797 -48.867,0.002 -88.625,39.761 -88.625,88.631 0.007,58.39 47.517,105.899 105.912,105.905 70.303,-0.006 127.502,-57.207 127.508,-127.51 0,-41.271 -16.072,-80.073 -45.256,-109.256 C 306.198,16.071 267.399,-0.001 226.125,0 122.316,0 37.86,84.455 37.86,188.264 c 0,61.557 23.972,119.429 67.499,162.956 40.768,40.77 94.847,64.655 152.276,67.262 0.228,0.011 0.453,0.016 0.681,0.016 3.853,0 7.565,-1.482 10.362,-4.155 2.961,-2.83 4.637,-6.748 4.637,-10.845 v -9.013 c 0,-8.005 -6.285,-14.601 -14.281,-14.982 C 156.88,374.608 76.86,290.607 76.86,188.265 76.86,105.96 143.82,39.001 226.126,39.001 256.98,39 285.985,51.016 307.804,72.833 c 21.818,21.818 33.834,50.827 33.834,81.68 -0.002,48.801 -39.707,88.506 -88.506,88.512 -36.893,-0.006 -66.908,-30.021 -66.914,-66.909 0,-27.363 22.263,-49.626 49.626,-49.628 19.738,0 35.801,16.061 35.805,35.797 -0.002,13.643 -11.1,24.744 -24.729,24.747 z"
+   id="path1"
+   style="fill:#f28c4c;fill-opacity:1" />
+</g></g></svg>

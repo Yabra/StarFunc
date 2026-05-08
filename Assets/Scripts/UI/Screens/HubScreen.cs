@@ -483,7 +483,7 @@ namespace StarFunc.UI
         }
 
         static bool HasIntroBeenShown(string sectorId) =>
-            false && PlayerPrefs.GetInt(IntroShownPrefix + sectorId, 0) == 1;
+            PlayerPrefs.GetInt(IntroShownPrefix + sectorId, 0) == 1;
 
         static void MarkIntroShown(string sectorId)
         {
@@ -492,7 +492,7 @@ namespace StarFunc.UI
         }
 
         static bool HasOutroBeenShown(string sectorId) =>
-            false && PlayerPrefs.GetInt(OutroShownPrefix + sectorId, 0) == 1;
+            PlayerPrefs.GetInt(OutroShownPrefix + sectorId, 0) == 1;
 
         static void MarkOutroShown(string sectorId)
         {

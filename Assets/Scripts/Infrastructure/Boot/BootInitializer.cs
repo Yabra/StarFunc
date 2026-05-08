@@ -125,6 +125,12 @@ namespace StarFunc.Infrastructure
             var audioService = new AudioService(musicPlayer, sfxPlayer);
             ServiceLocator.Register<IAudioService>(audioService);
 
+            // Start background music once. MusicPlayer is DontDestroyOnLoad and
+            // CrossfadeTo is a no-op when the same clip is already playing, so
+            // scene transitions don't interrupt playback.
+            if (_audioConfig != null && _audioConfig.HubMusic != null)
+                audioService.PlayMusic(_audioConfig.HubMusic, 0f);
+
             // §10.5 step 8 — FeedbackService (uses AudioService + AudioConfig for SFX,
             // VfxConfig for ParticleSystem one-shots — task 4.6)
             var feedbackService = new FeedbackService(audioService, _audioConfig, _vfxConfig);

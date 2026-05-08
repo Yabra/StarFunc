@@ -126,6 +126,21 @@ namespace StarFunc.UI
             KillScrollHintTween();
         }
 
+        // Mirror AnswerSystem.IsActive onto the spawned buttons every frame —
+        // disables them while a confirm is being processed (curve animation /
+        // result screen wind-down) and re-enables on retry when LevelController
+        // calls AwaitInput() → AnswerSystem.SetActive(true).
+        void Update()
+        {
+            if (_answerSystem == null) return;
+            bool active = _answerSystem.IsActive;
+            for (int i = 0; i < _spawnedButtons.Count; i++)
+            {
+                var b = _spawnedButtons[i];
+                if (b && b.interactable != active) b.interactable = active;
+            }
+        }
+
         void OnOptionsChanged(AnswerOption[] options, TaskType taskType)
         {
             ClearButtons();

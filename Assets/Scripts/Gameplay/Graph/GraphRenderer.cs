@@ -8,6 +8,11 @@ namespace StarFunc.Gameplay
     {
         [Header("Sub-components")]
         [SerializeField] CurveRenderer _curveRenderer;
+        [Tooltip("Optional second CurveRenderer used as a 'pre-line' preview. " +
+                 "Tutorial ChooseFunction levels draw the player's currently-selected " +
+                 "function here on selection, while the confirmed answer goes to " +
+                 "_curveRenderer. Leave null to disable previews.")]
+        [SerializeField] CurveRenderer _previewCurveRenderer;
         [SerializeField] ControlPointsRenderer _controlPointsRenderer;
         [SerializeField] ComparisonOverlay _comparisonOverlay;
 
@@ -43,6 +48,24 @@ namespace StarFunc.Gameplay
             _curveRenderer.Draw(function);
         }
 
+        /// <summary>
+        /// Draw <paramref name="function"/> on the dedicated preview curve renderer
+        /// (if assigned). Used by ChooseFunction tutorials to show the
+        /// player's currently-selected function as a "pre-line" alongside the
+        /// confirmed answer.
+        /// </summary>
+        public void DrawPreviewFunction(FunctionDefinition function)
+        {
+            if (function == null || _previewCurveRenderer == null) return;
+            _previewCurveRenderer.Draw(function);
+        }
+
+        public void ClearPreview()
+        {
+            if (_previewCurveRenderer != null)
+                _previewCurveRenderer.Clear();
+        }
+
         public void DrawControlPoints(IReadOnlyList<StarConfig> stars)
         {
             _controlPointsRenderer.Draw(stars);
@@ -72,6 +95,7 @@ namespace StarFunc.Gameplay
         public void Clear()
         {
             _curveRenderer.Clear();
+            if (_previewCurveRenderer != null) _previewCurveRenderer.Clear();
             _controlPointsRenderer.Clear();
             _comparisonOverlay.Hide();
         }

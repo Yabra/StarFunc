@@ -15,6 +15,17 @@ namespace MCP.Reflection
             if (token == null || token.Type == JTokenType.Null)
                 return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
 
+            // Auto-recover from clients that JSON.stringify nested complex values. Only attempt
+            // for target types that expect a JSON object/array; primitives, strings, and enums
+            // pass through verbatim. Without this, struct branches below (Vector3/Color/etc.)
+            // crash with "Cannot access child value on Newtonsoft.Json.Linq.JValue" when reading
+            // a stringified envelope. ObjectRef.Resolve handles ref envelopes separately.
+            if (NeedsStructuredInput(targetType))
+            {
+                var recovered = TokenShape.TryRecoverStringifiedJson(token, targetType.Name);
+                if (recovered != null) token = recovered;
+            }
+
             // {"__type": "FullName"} envelope → System.Type. Use this to pass typeof(X) into APIs
             // like Resources.Load(string, Type) or AssetDatabase.LoadAssetAtPath(string, Type).
             if (token is JObject typeObj && typeObj["__type"] != null && targetType == typeof(Type))
@@ -89,8 +100,6 @@ namespace MCP.Reflection
 
             if (targetType.IsArray)
             {
-                var recovered = TokenShape.TryRecoverStringifiedJson(token, targetType.Name);
-                if (recovered != null) token = recovered;
                 if (!(token is JArray arr))
                     throw new ArgumentException(TokenShape.BuildShapeError(targetType.Name, "array", token));
                 var elemType = targetType.GetElementType();
@@ -102,8 +111,6 @@ namespace MCP.Reflection
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 var listLabel = $"List<{targetType.GetGenericArguments()[0].Name}>";
-                var recovered = TokenShape.TryRecoverStringifiedJson(token, listLabel);
-                if (recovered != null) token = recovered;
                 if (!(token is JArray jarr))
                     throw new ArgumentException(TokenShape.BuildShapeError(listLabel, "array", token));
                 var elemType = targetType.GetGenericArguments()[0];
@@ -149,5 +156,16 @@ namespace MCP.Reflection
 
         static float F(JToken t, string k) => t[k] != null ? (float)t[k] : 0f;
         static int I(JToken t, string k) => t[k] != null ? (int)t[k] : 0;
+
+        // True when the target type expects a structured (object/array) JSON shape, so we should
+        // attempt stringified-JSON recovery on JValue strings. False for primitives/strings/enums
+        // that legitimately accept scalar values.
+        static bool NeedsStructuredInput(Type t)
+        {
+            if (t == typeof(string)) return false;
+            if (t.IsPrimitive) return false;
+            if (t.IsEnum) return false;
+            return true;
+        }
     }
 }

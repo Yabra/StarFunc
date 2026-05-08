@@ -51,8 +51,19 @@ namespace StarFunc.UI
         {
             if (result == null) return;
 
+            // Endless-mode levels don't award persistent stars (story-mode
+            // entity), so the rating row is hidden and the title reflects the
+            // mode. The fragments display still shows the post-reward balance.
+            bool isEphemeral = LevelData.ActiveLevel != null
+                               && LevelData.ActiveLevel.IsEphemeral;
+
             if (_starRating)
-                _starRating.SetStars(result.Stars, animate: true);
+            {
+                if (isEphemeral)
+                    _starRating.gameObject.SetActive(false);
+                else
+                    _starRating.SetStars(result.Stars, animate: true);
+            }
 
             if (_fragmentsDisplay)
             {
@@ -74,11 +85,17 @@ namespace StarFunc.UI
             }
 
             if (_titleText)
-                _titleText.text = result.LevelFailed ? "Уровень не пройден" : "Уровень пройден!";
+            {
+                _titleText.text = result.LevelFailed
+                    ? "Уровень не пройден"
+                    : (isEphemeral ? "Бесконечный уровень пройден!" : "Уровень пройден!");
+            }
 
-            // Disable "Next" when the level was failed
+            // Disable "Next" when the level was failed. Endless levels also
+            // disable "Next" — there is no curated next level; "Hub" sends
+            // the player back to roll another one from the menu.
             if (_nextButton)
-                _nextButton.interactable = !result.LevelFailed;
+                _nextButton.interactable = !result.LevelFailed && !isEphemeral;
         }
 
         public void SetConstellationPreview(Sprite preview)

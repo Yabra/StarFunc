@@ -79,8 +79,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: StarFunc.UI::StarFunc.UI.LivesDisplay
   _livesText: {fileID: 6344303114360405420}
-  _icon: {fileID: 0}
-  _notificationBadge: {fileID: 0}
+  _icon: {fileID: 857580815620742773}
+  _notificationBadge: {fileID: 45154875600570533}
   _onLivesChanged: {fileID: 11400000, guid: afdaa9de2dd31f87186b40c4b9b11085, type: 2}
 --- !u!1 &45154875600570533
 GameObject:
@@ -270,10 +270,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
+  m_fontSize: 33.1
   m_fontSizeBase: 50
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0

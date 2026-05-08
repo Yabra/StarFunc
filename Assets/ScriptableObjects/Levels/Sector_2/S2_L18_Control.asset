@@ -29,56 +29,36 @@ MonoBehaviour:
   - StarId: s2_l18_star_2
     Coordinate: {x: -2, y: 3}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
   - StarId: s2_l18_star_3
     Coordinate: {x: -1, y: 2}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
   - StarId: s2_l18_star_4
     Coordinate: {x: 0, y: 1}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
   - StarId: s2_l18_star_5
     Coordinate: {x: 1, y: 0}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
-  TaskType: 1
+  TaskType: 2
   ReferenceFunctions:
   - {fileID: 11400000, guid: e0e704ac1c3c2f359af47d0820b74bcf, type: 2}
-  AnswerOptions:
-  - OptionId: opt_1
-    Text: y = -x + 1
-    Value: 0
-    IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: y = 0x + 1
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: y = -x + 2
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: y = x + 1
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
-  AccuracyThreshold: 0.5
+  AnswerOptions: []
+  AccuracyThreshold: 0.3
   StarRating:
     ThreeStarMaxErrors: 0
     TwoStarMaxErrors: 0
@@ -86,7 +66,7 @@ MonoBehaviour:
     TimerAffectsRating: 1
     ThreeStarMaxTime: 45
   MaxAttempts: 0
-  MaxAdjustments: 0
+  MaxAdjustments: 250
   AllowedFunctionTypes: 
   UseMemoryMode: 0
   MemoryDisplayDuration: 0

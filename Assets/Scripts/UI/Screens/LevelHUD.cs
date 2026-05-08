@@ -115,18 +115,29 @@ namespace StarFunc.UI
         {
             if (_levelController == null) return;
 
+            // Once the player confirms, the level walks AwaitInput → ValidateAnswer
+            // → (delay) → CalculateResult/ShowResult. Lock every action button
+            // during that window so a stray tap can't fire while the curve
+            // animation is still playing or the result screen is mid-fade.
+            bool awaitingInput = _levelController.CurrentState == LevelState.AwaitInput;
+
             if (_undoButton)
-                _undoButton.interactable = _levelController.ActionHistory != null
-                                           && _levelController.ActionHistory.CanUndo
-                                           && _levelController.CurrentState == LevelState.AwaitInput;
+                _undoButton.interactable = awaitingInput
+                                           && _levelController.ActionHistory != null
+                                           && _levelController.ActionHistory.CanUndo;
+
+            if (_resetButton)
+                _resetButton.interactable = awaitingInput;
 
             if (_confirmButton)
-                _confirmButton.interactable = _levelController.AnswerSystem != null
+                _confirmButton.interactable = awaitingInput
+                                              && _levelController.AnswerSystem != null
                                               && _levelController.AnswerSystem.HasSelection
                                               && _levelController.AnswerSystem.IsActive;
 
             if (_hintButton && _hintSystem != null)
-                _hintButton.interactable = _hintSystem.PaidHintCount > 0
+                _hintButton.interactable = awaitingInput
+                                           && _hintSystem.PaidHintCount > 0
                                            && _hintSystem.HasUnshownHints;
         }
 

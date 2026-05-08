@@ -32,6 +32,11 @@ namespace StarFunc.Gameplay
         int _selectedIndex = -1;
         bool _isActive;
         bool _functionAnswerReady = false;
+        // Tutorial-only ChooseFunction tweak: draw the currently-selected
+        // function on the preview CurveRenderer so the player can see it
+        // before committing. Non-tutorial levels keep the graph blank until
+        // confirm to make the puzzle harder.
+        bool _previewSelectedFunction;
 
         // IdentifyError state.
         readonly HashSet<string> _selectedStarIds = new();
@@ -64,7 +69,7 @@ namespace StarFunc.Gameplay
         /// <summary>
         /// Configure the answer system for a new task.
         /// </summary>
-        public void Setup(AnswerOption[] options, TaskType taskType)
+        public void Setup(AnswerOption[] options, TaskType taskType, bool previewSelectedFunction = false)
         {
             DetachModeListeners();
             _currentOptions = options;
@@ -72,12 +77,16 @@ namespace StarFunc.Gameplay
             _selectedIndex = -1;
             _functionAnswerReady = false;
             _isActive = true;
+            _previewSelectedFunction = previewSelectedFunction;
 
             if (_functionEditor) _functionEditor.gameObject.SetActive(false);
             if (_typeSelector) _typeSelector.gameObject.SetActive(false);
 
+            // Wipe any leftover preview from a previous task (e.g. retry).
+            if (_graphRenderer) _graphRenderer.ClearPreview();
+
             OnOptionsChanged?.Invoke(options, taskType);
-            Debug.Log($"[AnswerSystem] Setup: {options.Length} options, taskType={taskType}");
+            Debug.Log($"[AnswerSystem] Setup: {options.Length} options, taskType={taskType}, preview={previewSelectedFunction}");
         }
 
         /// <summary>
@@ -346,11 +355,18 @@ namespace StarFunc.Gameplay
             _selectedIndex = index;
             var option = _currentOptions[index];
 
-            // ChooseFunction: draw the selected function on the graph for preview.
-            if (_currentTaskType == TaskType.ChooseFunction && _graphRenderer && option.Function)
+            // ChooseFunction confirmed line is drawn from ConfirmAnswer. In
+            // tutorial levels we additionally render the currently-selected
+            // function on the preview ("pre-line") CurveRenderer so the
+            // player can compare before committing. Non-tutorial levels skip
+            // this branch and keep the graph blank until confirm.
+            if (_previewSelectedFunction
+                && _currentTaskType == TaskType.ChooseFunction
+                && _graphRenderer
+                && option.Function)
             {
-                _graphRenderer.Clear();
-                _graphRenderer.DrawFunction(option.Function);
+                _graphRenderer.ClearPreview();
+                _graphRenderer.DrawPreviewFunction(option.Function);
             }
 
             if (_onAnswerSelected)
@@ -466,6 +482,22 @@ namespace StarFunc.Gameplay
 
             _isActive = false;
             LastConfirmedAnswer = answer;
+
+            // ChooseFunction: now that the choice is committed, draw the
+            // function the player picked so the curve appears alongside the
+            // result feedback (selection alone no longer previews the line).
+            if (_currentTaskType == TaskType.ChooseFunction
+                && _graphRenderer
+                && _currentOptions != null
+                && _selectedIndex >= 0 && _selectedIndex < _currentOptions.Length)
+            {
+                var picked = _currentOptions[_selectedIndex].Function;
+                if (picked)
+                {
+                    _graphRenderer.Clear();
+                    _graphRenderer.DrawFunction(picked);
+                }
+            }
 
             string identity;
             if (_currentTaskType == TaskType.AdjustGraph)

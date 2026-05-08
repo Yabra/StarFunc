@@ -56,5 +56,13 @@ namespace StarFunc.Data
 
         [Header("Rewards")]
         public int FragmentReward;
+
+        /// <summary>
+        /// True for runtime-generated endless-mode levels. Suppresses
+        /// progression bookkeeping (stars, sector unlocks, BestTime) — the
+        /// LevelController takes the fragments-only reward path. Always
+        /// false for authored ScriptableObject assets.
+        /// </summary>
+        [System.NonSerialized] public bool IsEphemeral;
     }
 }

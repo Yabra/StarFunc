@@ -47,30 +47,34 @@ MonoBehaviour:
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
-  TaskType: 0
+  TaskType: 1
   ReferenceFunctions:
   - {fileID: 11400000, guid: 460d43ba42e350989b1e65d4b7c78684, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (3, -5)
+  - OptionId: opt_correct
+    Text: y = -2x + 1
     Value: 0
     IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (3, -4)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 460d43ba42e350989b1e65d4b7c78684, type: 2}
+  - OptionId: opt_dist_neg2xp3
+    Text: y = -2x + 3
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (4, -5)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 84bf2acb024fddc5c95e0074877fe405, type: 2}
+  - OptionId: opt_dist_2xp1
+    Text: y = 2x + 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (3, -6)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 88c805afeab791632832ae1b2a259dbf, type: 2}
+  - OptionId: opt_dist_negxp1
+    Text: y = -x + 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: e0e704ac1c3c2f359af47d0820b74bcf, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
@@ -88,5 +92,21 @@ MonoBehaviour:
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
   ShowHints: 0
-  Hints: []
+  Hints:
+  - Trigger: 4
+    HintText: "y \u0443\u043C\u0435\u043D\u044C\u0448\u0430\u0435\u0442\u0441\u044F,
+      \u043A\u043E\u0433\u0434\u0430 x \u0440\u0430\u0441\u0442\u0451\u0442 \u2014
+      \u0437\u043D\u0430\u0447\u0438\u0442 k \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  - Trigger: 4
+    HintText: "\u041C\u0435\u0436\u0434\u0443 \u0441\u043E\u0441\u0435\u0434\u043D\u0438\u043C\u0438
+      \u0437\u0432\u0451\u0437\u0434\u0430\u043C\u0438 y \u043F\u0430\u0434\u0430\u0435\u0442
+      \u043D\u0430 2 \u2014 \u044D\u0442\u043E |k| = 2. \u0421 \u0443\u0447\u0451\u0442\u043E\u043C
+      \u0437\u043D\u0430\u043A\u0430 \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442\u0441\u044F
+      k = \u20132."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
   FragmentReward: 10

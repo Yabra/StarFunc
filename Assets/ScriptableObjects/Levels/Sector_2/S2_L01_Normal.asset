@@ -55,21 +55,25 @@ MonoBehaviour:
     Text: y = 2x + 1
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: 88c805afeab791632832ae1b2a259dbf, type: 2}
   - OptionId: opt_dist_2xm1
     Text: y = 2x - 1
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: 74108b7d004d7b2efac22d696f4a3bcd, type: 2}
   - OptionId: opt_dist_2xp2
     Text: y = 2x + 2
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: dedb36846cafd56dabbf2c24f02c6acb, type: 2}
   - OptionId: opt_dist_xp3
     Text: y = x + 3
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: 608bcd22bbade32c48930ac8b8835d8f, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
@@ -90,14 +94,20 @@ MonoBehaviour:
   ShowHints: 1
   Hints:
   - Trigger: 0
-    HintText: "\u041D\u0430\u0439\u0434\u0438 \u0442\u043E\u0447\u043A\u0443, \u043A\u043E\u0442\u043E\u0440\u0430\u044F
-      \u043B\u0435\u0436\u0438\u0442 \u043D\u0430 \u043F\u0440\u044F\u043C\u043E\u0439."
+    HintText: "\u0415\u0441\u043B\u0438 \u0437\u0432\u0435\u0437\u0434\u0430 \u043B\u0435\u0436\u0438\u0442
+      \u043D\u0430 \u043E\u0441\u0438 Y (x = 0), \u0435\u0451 y-\u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u0430
+      \u0441\u0440\u0430\u0437\u0443 \u0434\u0430\u0451\u0442 b."
     HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
     TriggerAfterErrors: 0
   - Trigger: 1
-    HintText: "\u041F\u0440\u044F\u043C\u0430\u044F \u043C\u043E\u0436\u0435\u0442
-      \u0438\u043C\u0435\u0442\u044C \u0440\u0430\u0437\u043D\u044B\u0439 \u043D\u0430\u043A\u043B\u043E\u043D
-      \u2014 \u0441\u043B\u0435\u0434\u0438 \u0437\u0430 \u043A\u043E\u044D\u0444\u0444\u0438\u0446\u0438\u0435\u043D\u0442\u043E\u043C."
+    HintText: "\u041D\u0430\u043A\u043B\u043E\u043D k = (\u0440\u0430\u0437\u043D\u043E\u0441\u0442\u044C
+      y) / (\u0440\u0430\u0437\u043D\u043E\u0441\u0442\u044C x) \u0434\u043B\u044F
+      \u043B\u044E\u0431\u043E\u0439 \u043F\u0430\u0440\u044B \u0437\u0432\u0451\u0437\u0434.
+      \u0417\u0434\u0435\u0441\u044C x \u0440\u0430\u0441\u0442\u0451\u0442 \u043D\u0430
+      1 \u2014 \u0437\u043D\u0430\u0447\u0438\u0442 k \u0440\u0430\u0432\u043D\u043E
+      \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044E y."
     HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
     TriggerAfterErrors: 1
   FragmentReward: 10

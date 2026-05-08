@@ -27,12 +27,21 @@
         "quantity": 10
     },
     {
+        "itemId": "life_restore_one",
+        "displayName": "Восстановление одной жизни",
+        "description": "Мгновенно восстановить одну жизнь",
+        "category": "Lives",
+        "price": 10,
+        "isConsumable": true,
+        "quantity": 1
+    },
+    {
         "itemId": "life_restore_full",
         "displayName": "Полное восстановление жизней",
         "description": "Мгновенно восстановить все жизни до максимума",
         "category": "Lives",
         "price": 40,
         "isConsumable": true,
-        "quantity": 1
+        "quantity": 99
     }
 ]

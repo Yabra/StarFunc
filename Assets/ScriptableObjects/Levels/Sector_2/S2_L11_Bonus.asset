@@ -40,30 +40,34 @@ MonoBehaviour:
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
-  TaskType: 0
+  TaskType: 1
   ReferenceFunctions:
   - {fileID: 11400000, guid: 7230686f2e025f062833982f3dcf1d01, type: 2}
   AnswerOptions:
-  - OptionId: opt_1
-    Text: (2, 7)
+  - OptionId: opt_correct
+    Text: y = 3x + 1
     Value: 0
     IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: (2, 8)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 7230686f2e025f062833982f3dcf1d01, type: 2}
+  - OptionId: opt_dist_3xm1
+    Text: y = 3x - 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: (3, 7)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 2a6e6b0abdc6a010fa684516d3cafda1, type: 2}
+  - OptionId: opt_dist_3x
+    Text: y = 3x
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: (2, 6)
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 183278cf2fc76bbc1873de96a75e6144, type: 2}
+  - OptionId: opt_dist_2xp1
+    Text: y = 2x + 1
     Value: 0
     IsCorrect: 0
-    Function: {fileID: 0}
+    Coordinate: {x: 0, y: 0}
+    Function: {fileID: 11400000, guid: 88c805afeab791632832ae1b2a259dbf, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0
@@ -81,5 +85,21 @@ MonoBehaviour:
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
   ShowHints: 0
-  Hints: []
+  Hints:
+  - Trigger: 4
+    HintText: "\u041C\u0435\u0436\u0434\u0443 \u0441\u043E\u0441\u0435\u0434\u043D\u0438\u043C\u0438
+      \u0437\u0432\u0451\u0437\u0434\u0430\u043C\u0438 x \u0440\u0430\u0441\u0442\u0451\u0442
+      \u043D\u0430 1. \u041D\u0430 \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F
+      y? \u042D\u0442\u043E \u0438 \u0435\u0441\u0442\u044C k."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  - Trigger: 4
+    HintText: "\u0417\u0432\u0435\u0437\u0434\u0430 (0, 1) \u0441\u0440\u0430\u0437\u0443
+      \u0434\u0430\u0451\u0442 b \u2014 \u0435\u0451 y-\u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u0430
+      \u0438 \u0435\u0441\u0442\u044C \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0439
+      \u0447\u043B\u0435\u043D."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
   FragmentReward: 15

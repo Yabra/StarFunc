@@ -37,6 +37,13 @@ namespace StarFunc.Gameplay
         [SerializeField] AnswerSystem _answerSystem;
         [SerializeField] GraphRenderer _graphRenderer;
 
+        [Header("Choose Function")]
+        [Tooltip("Delay (seconds) between confirming a correct ChooseFunction " +
+                 "answer and showing the result screen — gives the main curve's " +
+                 "draw animation time to finish before the popup covers it. " +
+                 "Set to ~CurveRenderer._drawDuration. 0 = no delay.")]
+        [SerializeField, Min(0f)] float _chooseFunctionResultDelay = 2f;
+
         [Header("SO Events")]
         [SerializeField] GameEvent<LevelData> _onLevelStarted;
         [SerializeField] GameEvent<LevelResult> _onLevelCompleted;
@@ -327,8 +334,11 @@ namespace StarFunc.Gameplay
             if (_levelData.TaskType == TaskType.ChooseFunction)
             {
                 // ChooseFunction: single task per level, no star iteration.
-                _answerSystem.Setup(_levelData.AnswerOptions, _levelData.TaskType);
-                Debug.Log("[LevelController] ShowTask: ChooseFunction mode");
+                // Tutorial levels get a preview line drawn on selection;
+                // other levels stay blank until confirm so the choice is harder.
+                bool previewOnSelect = _levelData.Type == LevelType.Tutorial;
+                _answerSystem.Setup(_levelData.AnswerOptions, _levelData.TaskType, previewOnSelect);
+                Debug.Log($"[LevelController] ShowTask: ChooseFunction mode (previewOnSelect={previewOnSelect})");
                 AwaitInput();
                 return;
             }
@@ -498,7 +508,10 @@ namespace StarFunc.Gameplay
             if (isCorrect)
             {
                 Debug.Log("[LevelController] ChooseFunction: correct answer.");
-                CalculateResult();
+                if (_chooseFunctionResultDelay > 0f)
+                    StartCoroutine(DelayedCalculateResult(_chooseFunctionResultDelay));
+                else
+                    CalculateResult();
             }
             else
             {
@@ -937,6 +950,12 @@ namespace StarFunc.Gameplay
         /// <summary>
         /// Compute level result via LevelResultCalculator, then run server reconciliation.
         /// </summary>
+        System.Collections.IEnumerator DelayedCalculateResult(float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            CalculateResult();
+        }
+
         void CalculateResult()
         {
             SetState(LevelState.CalculateResult);
@@ -1051,8 +1070,24 @@ namespace StarFunc.Gameplay
             // FragmentsEarned to IEconomyService — without this nothing carries
             // over between sessions and the next level stays locked. The call
             // is a no-op on invalid (failed) results.
-            if (_progressionService != null && _levelData != null)
+            //
+            // Endless-mode levels skip progression entirely (no stars, no
+            // sector bookkeeping) and just bank the fragments directly. The
+            // ProgressionService.CompleteLevel path would early-return on the
+            // synthetic LevelId anyway, but the explicit branch keeps the
+            // contract obvious and matches the IsEphemeral marker on the data.
+            if (_levelData != null && _levelData.IsEphemeral)
+            {
+                if (result.IsValid && result.FragmentsEarned > 0
+                    && ServiceLocator.Contains<IEconomyService>())
+                {
+                    ServiceLocator.Get<IEconomyService>().AddFragments(result.FragmentsEarned);
+                }
+            }
+            else if (_progressionService != null && _levelData != null)
+            {
                 _progressionService.CompleteLevel(_levelData.LevelId, result);
+            }
 
             if (_onLevelCompleted) _onLevelCompleted.Raise(result);
 

@@ -55,21 +55,25 @@ MonoBehaviour:
     Text: y = -x + 2
     Value: 0
     IsCorrect: 1
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: dcb6e44ff55cab6c596528bbab32a490, type: 2}
   - OptionId: opt_dist_negxp5
     Text: y = -x + 5
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: 7bcd497636092dccc8056e3a304e025d, type: 2}
   - OptionId: opt_dist_neg2xp4
     Text: y = -2x + 4
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: ead45279caabc8d1fb1b73368297b216, type: 2}
   - OptionId: opt_dist_xp3
     Text: y = x + 3
     Value: 0
     IsCorrect: 0
+    Coordinate: {x: 0, y: 0}
     Function: {fileID: 11400000, guid: 608bcd22bbade32c48930ac8b8835d8f, type: 2}
   AccuracyThreshold: 0.5
   StarRating:
@@ -87,6 +91,23 @@ MonoBehaviour:
     PartialReveal: 0
     InitialVisibleSegments: 0
     RevealPerCorrectAction: 0
-  ShowHints: 0
-  Hints: []
+  ShowHints: 1
+  Hints:
+  - Trigger: 0
+    HintText: "\u0415\u0441\u043B\u0438 y \u0443\u043C\u0435\u043D\u044C\u0448\u0430\u0435\u0442\u0441\u044F,
+      \u043A\u043E\u0433\u0434\u0430 x \u0440\u0430\u0441\u0442\u0451\u0442, \u043D\u0430\u043A\u043B\u043E\u043D
+      k \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439
+      \u2014 \u043F\u0440\u044F\u043C\u0430\u044F \u0438\u0434\u0451\u0442 \u0441\u0432\u0435\u0440\u0445\u0443
+      \u0432\u043D\u0438\u0437."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 0
+  - Trigger: 1
+    HintText: "\u0417\u0432\u0435\u0437\u0434\u0430 \u043F\u0440\u0438 x = 0 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442
+      b \u0441\u0440\u0430\u0437\u0443 \u2014 \u0435\u0451 y-\u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u0430
+      \u0438 \u0435\u0441\u0442\u044C \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0439
+      \u0447\u043B\u0435\u043D."
+    HighlightPosition: {x: 0, y: 0}
+    HighlightSize: {x: 0, y: 0}
+    TriggerAfterErrors: 1
   FragmentReward: 10

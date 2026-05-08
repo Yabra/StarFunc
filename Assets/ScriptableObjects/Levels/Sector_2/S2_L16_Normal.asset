@@ -29,48 +29,28 @@ MonoBehaviour:
   - StarId: s2_l16_star_2
     Coordinate: {x: 0, y: -3}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
   - StarId: s2_l16_star_3
     Coordinate: {x: 1, y: -2}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
   - StarId: s2_l16_star_4
     Coordinate: {x: 2, y: -1}
     InitialState: 1
-    IsControlPoint: 0
+    IsControlPoint: 1
     IsDistractor: 0
     BelongsToSolution: 1
     RevealAfterAction: -1
-  TaskType: 1
+  TaskType: 2
   ReferenceFunctions:
   - {fileID: 11400000, guid: 9dcf725767ef0411ea112c6841bf9ef1, type: 2}
-  AnswerOptions:
-  - OptionId: opt_1
-    Text: y = x - 3
-    Value: 0
-    IsCorrect: 1
-    Function: {fileID: 0}
-  - OptionId: opt_2
-    Text: y = 2x - 3
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_3
-    Text: y = x - 4
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
-  - OptionId: opt_4
-    Text: y = -x - 3
-    Value: 0
-    IsCorrect: 0
-    Function: {fileID: 0}
+  AnswerOptions: []
   AccuracyThreshold: 0.5
   StarRating:
     ThreeStarMaxErrors: 0

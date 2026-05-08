@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c61c7d1d49ba508897f735cfff9da9d, type: 3}
   m_Name: AudioConfig
   m_EditorClassIdentifier: StarFunc.Meta::StarFunc.Meta.AudioConfig
-  BootMusic: {fileID: 0}
-  HubMusic: {fileID: 0}
-  LevelMusic: {fileID: 0}
+  BootMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
+  HubMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
+  LevelMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
   MusicCrossfadeDuration: 0.5
   StarPlaced: {fileID: 0}
   StarError: {fileID: 0}

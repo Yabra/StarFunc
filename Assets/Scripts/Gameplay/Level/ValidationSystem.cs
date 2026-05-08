@@ -259,16 +259,26 @@ namespace StarFunc.Gameplay
 
                 float rms = ComputeControlPointRms(player, reference, level.Stars);
 
+                // Errors map to stars via LevelResultCalculator.Calculate:
+                //   0                          → 3 stars (perfect)
+                //   <= TwoStarMaxErrors        → 2 stars
+                //   <= OneStarMaxErrors        → 1 star
+                //   > OneStarMaxErrors         → 0 stars / IsValid=false (level failed)
+                // So the off-target branch must explicitly exceed OneStarMaxErrors;
+                // otherwise any wrong submission rounds up to ≥1 star and the level
+                // erroneously reports success.
+                int failErrors = level.StarRating.OneStarMaxErrors + 1;
+
                 int errors;
                 if (rms < 0f)
                 {
                     // No control points or evaluator unsupported — fall back to coefficient comparison.
                     bool ok = ValidateFunction(player, reference, level.AccuracyThreshold);
-                    errors = ok ? 0 : 1;
+                    errors = ok ? 0 : failErrors;
                 }
                 else
                 {
-                    errors = rms <= level.AccuracyThreshold ? 0 : 1;
+                    errors = rms <= level.AccuracyThreshold ? 0 : failErrors;
                 }
 
                 return calculator.Calculate(level, errors, 0f);
