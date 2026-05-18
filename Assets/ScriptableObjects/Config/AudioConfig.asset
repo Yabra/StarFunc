@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c61c7d1d49ba508897f735cfff9da9d, type: 3}
   m_Name: AudioConfig
   m_EditorClassIdentifier: StarFunc.Meta::StarFunc.Meta.AudioConfig
-  BootMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
-  HubMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
-  LevelMusic: {fileID: 8300000, guid: f3143bd087579bc28a33b39c29a63283, type: 3}
+  BootMusic: {fileID: 8300000, guid: aa6403f76a2e497428afc3bb2ab0ad5a, type: 3}
+  HubMusic: {fileID: 8300000, guid: aa6403f76a2e497428afc3bb2ab0ad5a, type: 3}
+  LevelMusic: {fileID: 8300000, guid: 57d91fa6a4c659548a7bf2611ea1c08e, type: 3}
   MusicCrossfadeDuration: 0.5
-  StarPlaced: {fileID: 0}
-  StarError: {fileID: 0}
-  LevelComplete: {fileID: 0}
-  ConstellationRestored: {fileID: 0}
-  ButtonTap: {fileID: 0}
-  SectorUnlock: {fileID: 0}
+  StarPlaced: {fileID: 8300000, guid: e9a76398553798d469c0f3af3547c9e0, type: 3}
+  StarError: {fileID: 8300000, guid: 39546cc795e8175438318e4263691e9e, type: 3}
+  LevelComplete: {fileID: 8300000, guid: 44f5f8371569f3f4ebe73ee2e64413e7, type: 3}
+  ConstellationRestored: {fileID: 8300000, guid: 44f5f8371569f3f4ebe73ee2e64413e7, type: 3}
+  ButtonTap: {fileID: 8300000, guid: e8952e83ecf377045b2efefe640a0433, type: 3}
+  SectorUnlock: {fileID: 8300000, guid: 1508ab4f91a35dc43b6312e8f77f80fb, type: 3}
